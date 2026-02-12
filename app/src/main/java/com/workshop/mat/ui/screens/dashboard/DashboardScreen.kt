@@ -1,6 +1,9 @@
 package com.workshop.mat.ui.screens.dashboard
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,10 +14,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -25,21 +35,22 @@ import com.workshop.mat.ui.theme.*
 import java.text.NumberFormat
 import java.util.Locale
 
-private data class NavItem(
+// Navigation items for the bottom toolbar
+private data class ToolbarNavItem(
     val title: String,
     val icon: ImageVector,
     val route: String,
     val color: Color
 )
 
-private val navItems = listOf(
-    NavItem("Материалы", Icons.Default.Inventory2, Routes.MATERIALS, Primary),
-    NavItem("Изделия", Icons.Default.Category, Routes.PRODUCTS, Secondary),
-    NavItem("Производство", Icons.Default.Factory, Routes.PRODUCTIONS, Success),
-    NavItem("Приходы", Icons.Default.LocalShipping, Routes.RECEIPTS, Info),
-    NavItem("Продукция", Icons.Default.ShoppingCart, Routes.FINISHED_PRODUCTS, Warning),
-    NavItem("История", Icons.Default.History, Routes.HISTORY, Color(0xFF8B5CF6)),
-    NavItem("Настройки", Icons.Default.Settings, Routes.SETTINGS, TextMuted),
+private val toolbarItems = listOf(
+    ToolbarNavItem("Материалы", Icons.Default.Inventory2, Routes.MATERIALS, Primary),
+    ToolbarNavItem("Поступления", Icons.Default.LocalShipping, Routes.RECEIPTS, Info),
+    ToolbarNavItem("Изделия", Icons.Default.Category, Routes.PRODUCTS, Secondary),
+    ToolbarNavItem("Производство", Icons.Default.Factory, Routes.PRODUCTIONS, Success),
+    ToolbarNavItem("Продукция", Icons.Default.ShoppingCart, Routes.FINISHED_PRODUCTS, Warning),
+    ToolbarNavItem("История", Icons.Default.History, Routes.HISTORY, Color(0xFF8B5CF6)),
+    ToolbarNavItem("Настройки", Icons.Default.Settings, Routes.SETTINGS, TextMuted),
 )
 
 @Composable
@@ -52,206 +63,505 @@ fun DashboardScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .background(DarkBackground)
     ) {
-        // Header
-        Text(
-            text = "Мастерская",
-            style = MaterialTheme.typography.headlineLarge.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 28.sp
-            ),
-            color = TextPrimary
-        )
-        if (uiState.userName.isNotBlank()) {
+        // Scrollable content area (takes all space except toolbar)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Header
             Text(
-                text = "Привет, ${uiState.userName}!",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary
+                text = "Мастерская",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = TextPrimary
             )
+            if (uiState.userName.isNotBlank()) {
+                Text(
+                    text = "Привет, ${uiState.userName}!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary
+                )
+            }
+
+            when {
+                uiState.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Primary)
+                    }
+                }
+                uiState.error != null -> {
+                    ErrorMessage(message = uiState.error!!, onRetry = viewModel::loadDashboard)
+                }
+                uiState.data != null -> {
+                    val data = uiState.data!!
+                    val matSummary = data.materialsSummary
+                    val fpSummary = data.finishedProductsSummary
+
+                    // =============== TOP STAT CARDS (2x2 grid) ===============
+                    // Row 1: Materials on stock + Finished products
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        DashboardStatCard(
+                            title = "Материалы\nна складе",
+                            value = formatCurrency(matSummary?.totalValue ?: 0.0),
+                            subtitle = "${matSummary?.activeMaterials ?: 0} позиций",
+                            icon = Icons.Default.Inventory2,
+                            iconColor = Primary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        DashboardStatCard(
+                            title = "Готовая\nпродукция",
+                            value = "${fpSummary?.totalInStock ?: 0}",
+                            subtitle = formatCurrency(fpSummary?.totalInStockValue ?: 0.0),
+                            icon = Icons.Default.Factory,
+                            iconColor = Success,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    // Row 2: Sold + Profit
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        DashboardStatCard(
+                            title = "Продано",
+                            value = "${fpSummary?.totalSold ?: 0}",
+                            subtitle = formatCurrency(fpSummary?.totalSalesRevenue ?: 0.0),
+                            icon = Icons.Default.ShoppingCart,
+                            iconColor = Info,
+                            modifier = Modifier.weight(1f)
+                        )
+                        DashboardStatCard(
+                            title = "Прибыль",
+                            value = formatCurrency(fpSummary?.totalProfit ?: 0.0),
+                            subtitle = "с продаж",
+                            icon = Icons.Default.TrendingUp,
+                            iconColor = Secondary,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    // =============== SALES CHART ===============
+                    Spacer(modifier = Modifier.height(4.dp))
+                    SalesChartSection(
+                        uiState = uiState,
+                        onPeriodChange = viewModel::selectPeriod
+                    )
+                }
+            }
         }
 
-        // Navigation grid — 2 columns
-        Spacer(modifier = Modifier.height(4.dp))
+        // =============== BOTTOM TOOLBAR ===============
+        HorizontalDivider(color = DarkBorder.copy(alpha = 0.4f), thickness = 1.dp)
+        BottomToolbar(
+            items = toolbarItems,
+            onNavigate = onNavigate
+        )
+    }
+}
 
-        // Row 1
-        for (rowIndex in navItems.indices step 2) {
+// ======================== STAT CARD ========================
+
+@Composable
+private fun DashboardStatCard(
+    title: String,
+    value: String,
+    subtitle: String,
+    icon: ImageVector,
+    iconColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = DarkCard,
+        shadowElevation = 2.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                NavCard(
-                    item = navItems[rowIndex],
-                    onClick = { onNavigate(navItems[rowIndex].route) },
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary,
+                    lineHeight = 16.sp,
                     modifier = Modifier.weight(1f)
                 )
-                if (rowIndex + 1 < navItems.size) {
-                    NavCard(
-                        item = navItems[rowIndex + 1],
-                        onClick = { onNavigate(navItems[rowIndex + 1].route) },
-                        modifier = Modifier.weight(1f)
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = iconColor.copy(alpha = 0.15f)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconColor,
+                        modifier = Modifier
+                            .padding(6.dp)
+                            .size(18.dp)
                     )
-                } else {
-                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                ),
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(8.dp))
+// ======================== SALES CHART SECTION ========================
 
-        // Stats section
-        when {
-            uiState.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = Primary)
-                }
-            }
-            uiState.error != null -> {
-                ErrorMessage(message = uiState.error!!, onRetry = viewModel::loadDashboard)
-            }
-            uiState.data != null -> {
-                val data = uiState.data!!
+@Composable
+private fun SalesChartSection(
+    uiState: DashboardUiState,
+    onPeriodChange: (SalesPeriod) -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = DarkCard,
+        shadowElevation = 2.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Title + Period selector
+            Text(
+                text = "Продажи",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = TextPrimary
+            )
 
-                // Quick stats row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatCard(
-                        title = "Материалы",
-                        value = "${data.materialsSummary?.totalMaterials ?: 0}",
-                        icon = Icons.Default.Inventory2,
-                        iconTint = Primary,
-                        modifier = Modifier.weight(1f),
-                        subtitle = "${data.materialsSummary?.activeMaterials ?: 0} активных"
-                    )
-                    StatCard(
-                        title = "На складе",
-                        value = "${data.finishedProductsSummary?.totalInStock ?: 0}",
-                        icon = Icons.Default.ShoppingCart,
-                        iconTint = Success,
-                        modifier = Modifier.weight(1f),
-                        subtitle = "единиц"
-                    )
-                }
-
-                // Low stock materials
-                if (data.lowStockMaterials.isNotEmpty()) {
-                    AppCard {
+            // Period tabs
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                SalesPeriod.entries.forEach { period ->
+                    val selected = uiState.selectedPeriod == period
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onPeriodChange(period) },
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (selected) Primary else DarkSurfaceVariant.copy(alpha = 0.5f)
+                    ) {
                         Text(
-                            text = "Заканчивающиеся материалы",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = TextPrimary
+                            text = period.label,
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (selected) Color.White else TextSecondary,
+                            textAlign = TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        data.lowStockMaterials.take(3).forEach { material ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 6.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(material.materialName, color = TextPrimary, style = MaterialTheme.typography.bodyLarge)
-                                    Text(
-                                        "Остаток: ${material.currentStock} ${material.unit}",
-                                        color = Warning,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                                StatusBadge(
-                                    text = "Мин: ${material.minimumStock ?: 0}",
-                                    color = Warning,
-                                    bgColor = WarningBg
+                    }
+                }
+            }
+
+            // Chart content
+            when {
+                uiState.isSalesLoading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Primary, modifier = Modifier.size(28.dp))
+                    }
+                }
+                uiState.salesData != null -> {
+                    val salesData = uiState.salesData!!
+
+                    // Summary row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text("Выручка", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                            Text(
+                                formatCurrency(salesData.totalRevenue),
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = Primary
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("Прибыль", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                            Text(
+                                formatCurrency(salesData.totalProfit),
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = Success
+                            )
+                        }
+                    }
+
+                    // Bar chart showing sales by product
+                    if (salesData.items.isNotEmpty()) {
+                        SalesBarChart(
+                            items = salesData.items.sortedByDescending { it.revenue }.take(7),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    Icons.Default.BarChart,
+                                    contentDescription = null,
+                                    tint = TextMuted,
+                                    modifier = Modifier.size(36.dp)
                                 )
-                            }
-                            if (material != data.lowStockMaterials.take(3).last()) {
-                                HorizontalDivider(color = DarkBorder.copy(alpha = 0.3f))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "Нет данных за период",
+                                    color = TextMuted,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                             }
                         }
                     }
-                }
 
-                // Warehouse value
-                AppCard {
-                    Text(
-                        text = "Стоимость склада",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = TextSecondary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = formatCurrency(
-                            (data.materialsSummary?.totalValue ?: 0.0) +
-                            (data.finishedProductsSummary?.totalInStockValue ?: 0.0)
-                        ),
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                        color = TextPrimary
-                    )
-                    Text(
-                        text = "материалы + продукция",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted
+                    // Total sales count
+                    if (salesData.totalSales > 0) {
+                        Text(
+                            text = "Всего продаж: ${salesData.totalSales}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextMuted
+                        )
+                    }
+                }
+                else -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Не удалось загрузить данные",
+                            color = TextMuted,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ======================== BAR CHART ========================
+
+@Composable
+private fun SalesBarChart(
+    items: List<com.workshop.mat.data.model.SalesReportItemDto>,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val textColorInt = android.graphics.Color.argb(180, 148, 163, 184) // TextSecondary
+
+    Canvas(modifier = modifier) {
+        if (items.isEmpty()) return@Canvas
+
+        val maxRevenue = items.maxOf { it.revenue }.coerceAtLeast(1.0)
+        val barCount = items.size
+        val chartLeft = 0f
+        val chartRight = size.width
+        val chartTop = 10f
+        val chartBottom = size.height - 50f
+        val chartHeight = chartBottom - chartTop
+
+        val totalBarWidth = chartRight - chartLeft
+        val barSpacing = 12f
+        val barWidth = (totalBarWidth - barSpacing * (barCount + 1)) / barCount
+
+        items.forEachIndexed { index, item ->
+            val barHeight = (item.revenue / maxRevenue * chartHeight).toFloat()
+            val x = chartLeft + barSpacing + index * (barWidth + barSpacing)
+
+            // Revenue bar
+            drawRoundRect(
+                color = Primary.copy(alpha = 0.8f),
+                topLeft = Offset(x, chartBottom - barHeight),
+                size = androidx.compose.ui.geometry.Size(barWidth * 0.5f, barHeight),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
+            )
+
+            // Profit bar (next to revenue)
+            val profitHeight = (item.profit / maxRevenue * chartHeight).toFloat().coerceAtLeast(0f)
+            drawRoundRect(
+                color = Success.copy(alpha = 0.8f),
+                topLeft = Offset(x + barWidth * 0.5f, chartBottom - profitHeight),
+                size = androidx.compose.ui.geometry.Size(barWidth * 0.5f, profitHeight),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
+            )
+
+            // Product name label
+            drawContext.canvas.nativeCanvas.apply {
+                val paint = android.graphics.Paint().apply {
+                    color = textColorInt
+                    textSize = with(density) { 9.sp.toPx() }
+                    textAlign = android.graphics.Paint.Align.CENTER
+                    isAntiAlias = true
+                }
+                val label = if (item.productName.length > 8) {
+                    item.productName.take(7) + "…"
+                } else {
+                    item.productName
+                }
+                drawText(
+                    label,
+                    x + barWidth / 2f,
+                    chartBottom + with(density) { 14.sp.toPx() },
+                    paint
+                )
+            }
+        }
+
+        // Bottom line
+        drawLine(
+            color = DarkBorder.copy(alpha = 0.3f),
+            start = Offset(chartLeft, chartBottom),
+            end = Offset(chartRight, chartBottom),
+            strokeWidth = 1f
+        )
+    }
+
+    // Legend
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .background(Primary.copy(alpha = 0.8f), RoundedCornerShape(2.dp))
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text("Выручка", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+        Spacer(modifier = Modifier.width(16.dp))
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .background(Success.copy(alpha = 0.8f), RoundedCornerShape(2.dp))
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text("Прибыль", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+    }
+}
+
+// ======================== BOTTOM TOOLBAR ========================
+
+@Composable
+private fun BottomToolbar(
+    items: List<ToolbarNavItem>,
+    onNavigate: (String) -> Unit
+) {
+    Surface(
+        color = DarkSurface,
+        shadowElevation = 8.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 8.dp)
+        ) {
+            Text(
+                text = "Основные возможности",
+                style = MaterialTheme.typography.labelMedium,
+                color = TextMuted,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items.forEach { item ->
+                    ToolbarItem(
+                        item = item,
+                        onClick = { onNavigate(item.route) }
                     )
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 @Composable
-private fun NavCard(
-    item: NavItem,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+private fun ToolbarItem(
+    item: ToolbarNavItem,
+    onClick: () -> Unit
 ) {
     Surface(
-        modifier = modifier
-            .aspectRatio(1.2f)
+        modifier = Modifier
+            .width(100.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        color = DarkCard,
-        shadowElevation = 4.dp
+        shape = RoundedCornerShape(14.dp),
+        color = item.color.copy(alpha = 0.1f)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = item.color.copy(alpha = 0.15f)
-            ) {
-                Icon(
-                    imageVector = item.icon,
-                    contentDescription = item.title,
-                    tint = item.color,
-                    modifier = Modifier
-                        .padding(14.dp)
-                        .size(32.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
+            Icon(
+                imageVector = item.icon,
+                contentDescription = item.title,
+                tint = item.color,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = item.title,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.SemiBold
-                ),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                 color = TextPrimary,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
+
+// ======================== HELPERS ========================
 
 private fun formatCurrency(value: Double): String {
     val format = NumberFormat.getCurrencyInstance(Locale("ru", "RU"))

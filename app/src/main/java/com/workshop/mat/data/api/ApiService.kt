@@ -235,6 +235,12 @@ interface ApiService {
     @GET("reports/dashboard")
     suspend fun getDashboard(): Response<DashboardDto>
 
+    @GET("reports/sales")
+    suspend fun getSalesReport(
+        @Query("dateFrom") dateFrom: String,
+        @Query("dateTo") dateTo: String
+    ): Response<SalesReportDto>
+
     // ==================== HISTORY ====================
     @GET("history")
     suspend fun getHistory(

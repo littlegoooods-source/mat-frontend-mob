@@ -29,3 +29,23 @@ data class FinishedProductsSummaryDto(
     val totalSalesRevenue: Double = 0.0,
     val totalProfit: Double = 0.0
 )
+
+data class SalesReportDto(
+    val startDate: String = "",
+    val endDate: String = "",
+    val totalSales: Int = 0,
+    val totalRevenue: Double = 0.0,
+    val totalCost: Double = 0.0,
+    val totalProfit: Double = 0.0,
+    val profitMargin: Double = 0.0,
+    val items: List<SalesReportItemDto> = emptyList()
+)
+
+data class SalesReportItemDto(
+    val productId: Int = 0,
+    val productName: String = "",
+    val quantity: Int = 0,
+    val revenue: Double = 0.0,
+    val cost: Double = 0.0,
+    val profit: Double = 0.0
+)
