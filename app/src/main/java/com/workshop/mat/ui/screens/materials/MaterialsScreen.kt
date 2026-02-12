@@ -24,16 +24,8 @@ fun MaterialsScreen(viewModel: MaterialsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        // Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text("Материалы", style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
-                Text("Справочник материалов", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-            }
+        // Add button
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Button(
                 onClick = viewModel::openCreateDialog,
                 colors = ButtonDefaults.buttonColors(containerColor = Primary),
@@ -44,8 +36,7 @@ fun MaterialsScreen(viewModel: MaterialsViewModel = hiltViewModel()) {
                 Text("Добавить")
             }
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Filters
         SearchBar(value = uiState.search, onValueChange = viewModel::updateSearch)

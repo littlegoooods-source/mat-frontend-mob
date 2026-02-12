@@ -27,9 +27,6 @@ fun FinishedProductsScreen(viewModel: FinishedProductsViewModel = hiltViewModel(
     val statusLabels = listOf("Все", "На складе", "Продано", "Списано")
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Готовая продукция", style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
-        Text("Склад, продажи и списания", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-        Spacer(modifier = Modifier.height(12.dp))
 
         AppDropdown(
             value = statusLabels[statuses.indexOf(uiState.statusFilter).coerceAtLeast(0)],

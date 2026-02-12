@@ -25,15 +25,7 @@ fun ReceiptsScreen(viewModel: ReceiptsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text("Приходы", style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
-                Text("Поступления материалов", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-            }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Button(
                 onClick = viewModel::openCreateDialog,
                 colors = ButtonDefaults.buttonColors(containerColor = Primary),
@@ -44,8 +36,7 @@ fun ReceiptsScreen(viewModel: ReceiptsViewModel = hiltViewModel()) {
                 Text("Добавить")
             }
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Filter by material
         if (uiState.materials.isNotEmpty()) {

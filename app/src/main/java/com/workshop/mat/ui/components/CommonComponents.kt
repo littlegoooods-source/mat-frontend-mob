@@ -1,5 +1,6 @@
 package com.workshop.mat.ui.components
 
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -145,6 +146,7 @@ fun AppTextField(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppDropdown(
     value: String,

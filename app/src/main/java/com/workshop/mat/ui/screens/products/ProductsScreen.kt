@@ -26,15 +26,7 @@ fun ProductsScreen(viewModel: ProductsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text("Изделия", style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
-                Text("Рецепты и карточки", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-            }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Button(
                 onClick = viewModel::openCreateDialog,
                 colors = ButtonDefaults.buttonColors(containerColor = Primary),
@@ -45,8 +37,7 @@ fun ProductsScreen(viewModel: ProductsViewModel = hiltViewModel()) {
                 Text("Новое")
             }
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         SearchBar(value = uiState.search, onValueChange = viewModel::updateSearch)
         Spacer(modifier = Modifier.height(8.dp))
 

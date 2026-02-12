@@ -24,9 +24,6 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("История операций", style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
-        Text("Журнал всех действий", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-        Spacer(modifier = Modifier.height(12.dp))
 
         // Filters
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {

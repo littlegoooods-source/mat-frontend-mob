@@ -27,15 +27,7 @@ fun ProductionsScreen(viewModel: ProductionsViewModel = hiltViewModel()) {
     val statusLabels = listOf("Все", "Завершённые", "Отменённые")
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text("Производство", style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
-                Text("Управление производством", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-            }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Button(
                 onClick = viewModel::openCreateDialog,
                 colors = ButtonDefaults.buttonColors(containerColor = Primary),
@@ -46,8 +38,7 @@ fun ProductionsScreen(viewModel: ProductionsViewModel = hiltViewModel()) {
                 Text("Произвести")
             }
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         AppDropdown(
             value = statusLabels[statuses.indexOf(uiState.statusFilter).coerceAtLeast(0)],
             onValueChange = { label ->

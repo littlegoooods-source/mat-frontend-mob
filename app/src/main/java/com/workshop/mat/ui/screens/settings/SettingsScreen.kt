@@ -33,8 +33,6 @@ fun SettingsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Настройки", style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
-
         // User info
         AppCard {
             Row(verticalAlignment = Alignment.CenterVertically) {

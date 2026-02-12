@@ -2,6 +2,8 @@ package com.workshop.mat.data.api
 
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -54,10 +56,7 @@ class AuthInterceptor @Inject constructor(
         try {
             val client = okhttp3.OkHttpClient()
             val json = """{"refreshToken":"$refreshToken"}"""
-            val body = okhttp3.RequestBody.create(
-                okhttp3.MediaType.parse("application/json"),
-                json
-            )
+            val body = json.toRequestBody("application/json".toMediaType())
             val request = okhttp3.Request.Builder()
                 .url("https://mat-backend-r9iw.onrender.com/api/auth/refresh")
                 .post(body)
