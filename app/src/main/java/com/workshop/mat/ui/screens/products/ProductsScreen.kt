@@ -25,58 +25,60 @@ import java.util.Locale
 fun ProductsScreen(viewModel: ProductsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            Button(
-                onClick = viewModel::openCreateDialog,
-                colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Новое")
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        SearchBar(value = uiState.search, onValueChange = viewModel::updateSearch)
-        Spacer(modifier = Modifier.height(8.dp))
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            SearchBar(value = uiState.search, onValueChange = viewModel::updateSearch)
+            Spacer(modifier = Modifier.height(8.dp))
 
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (uiState.categories.isNotEmpty()) {
-                AppDropdown(
-                    value = uiState.categoryFilter.ifBlank { "Все" },
-                    onValueChange = { viewModel.updateCategoryFilter(if (it == "Все") "" else it) },
-                    label = "Категория",
-                    options = listOf("Все") + uiState.categories,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = uiState.includeArchived,
-                    onCheckedChange = { viewModel.toggleIncludeArchived() },
-                    colors = CheckboxDefaults.colors(checkedColor = Primary, uncheckedColor = TextMuted)
-                )
-                Text("Архивные", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        when {
-            uiState.isLoading -> LoadingIndicator()
-            uiState.products.isEmpty() -> EmptyState("Нет изделий")
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(uiState.products, key = { it.id }) { product ->
-                    ProductItem(
-                        product = product,
-                        onEdit = { viewModel.openEditDialog(product) },
-                        onCopy = { viewModel.openCopyDialog(product) },
-                        onArchive = { viewModel.archiveProduct(product) },
-                        onDelete = { viewModel.showDeleteConfirm(product) }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (uiState.categories.isNotEmpty()) {
+                    AppDropdown(
+                        value = uiState.categoryFilter.ifBlank { "Все" },
+                        onValueChange = { viewModel.updateCategoryFilter(if (it == "Все") "" else it) },
+                        label = "Категория",
+                        options = listOf("Все") + uiState.categories,
+                        modifier = Modifier.weight(1f)
                     )
                 }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = uiState.includeArchived,
+                        onCheckedChange = { viewModel.toggleIncludeArchived() },
+                        colors = CheckboxDefaults.colors(checkedColor = Primary, uncheckedColor = TextMuted)
+                    )
+                    Text("Архивные", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            when {
+                uiState.isLoading -> LoadingIndicator()
+                uiState.products.isEmpty() -> EmptyState("Нет изделий")
+                else -> LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 72.dp)
+                ) {
+                    items(uiState.products, key = { it.id }) { product ->
+                        ProductItem(
+                            product = product,
+                            onEdit = { viewModel.openEditDialog(product) },
+                            onCopy = { viewModel.openCopyDialog(product) },
+                            onArchive = { viewModel.archiveProduct(product) },
+                            onDelete = { viewModel.showDeleteConfirm(product) }
+                        )
+                    }
+                }
+            }
+        }
+
+        FloatingActionButton(
+            onClick = viewModel::openCreateDialog,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            containerColor = Primary,
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Добавить")
         }
     }
 

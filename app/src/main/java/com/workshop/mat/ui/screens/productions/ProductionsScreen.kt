@@ -26,42 +26,44 @@ fun ProductionsScreen(viewModel: ProductionsViewModel = hiltViewModel()) {
     val statuses = listOf("", "Completed", "Cancelled")
     val statusLabels = listOf("Все", "Завершённые", "Отменённые")
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            Button(
-                onClick = viewModel::openCreateDialog,
-                colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Произвести")
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        AppDropdown(
-            value = statusLabels[statuses.indexOf(uiState.statusFilter).coerceAtLeast(0)],
-            onValueChange = { label ->
-                val idx = statusLabels.indexOf(label)
-                viewModel.updateStatusFilter(statuses.getOrElse(idx) { "" })
-            },
-            label = "Статус",
-            options = statusLabels
-        )
-        Spacer(modifier = Modifier.height(12.dp))
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            AppDropdown(
+                value = statusLabels[statuses.indexOf(uiState.statusFilter).coerceAtLeast(0)],
+                onValueChange = { label ->
+                    val idx = statusLabels.indexOf(label)
+                    viewModel.updateStatusFilter(statuses.getOrElse(idx) { "" })
+                },
+                label = "Статус",
+                options = statusLabels
+            )
+            Spacer(modifier = Modifier.height(12.dp))
 
-        when {
-            uiState.isLoading -> LoadingIndicator()
-            uiState.productions.isEmpty() -> EmptyState("Нет производств")
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(uiState.productions, key = { it.id }) { production ->
-                    ProductionItem(
-                        production = production,
-                        onCancel = { viewModel.showCancelConfirm(production) },
-                        onDelete = { viewModel.showDeleteConfirm(production) }
-                    )
+            when {
+                uiState.isLoading -> LoadingIndicator()
+                uiState.productions.isEmpty() -> EmptyState("Нет производств")
+                else -> LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 72.dp)
+                ) {
+                    items(uiState.productions, key = { it.id }) { production ->
+                        ProductionItem(
+                            production = production,
+                            onCancel = { viewModel.showCancelConfirm(production) },
+                            onDelete = { viewModel.showDeleteConfirm(production) }
+                        )
+                    }
                 }
             }
+        }
+
+        FloatingActionButton(
+            onClick = viewModel::openCreateDialog,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            containerColor = Primary,
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Произвести")
         }
     }
 

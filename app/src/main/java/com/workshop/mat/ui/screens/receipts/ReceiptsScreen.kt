@@ -24,49 +24,49 @@ import java.util.Locale
 fun ReceiptsScreen(viewModel: ReceiptsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            Button(
-                onClick = viewModel::openCreateDialog,
-                colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Добавить")
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            if (uiState.materials.isNotEmpty()) {
+                val materialNames = listOf("Все материалы") + uiState.materials.map { "${it.name}${if (it.color != null) " (${it.color})" else ""}" }
+                AppDropdown(
+                    value = uiState.materialFilter?.let { id ->
+                        uiState.materials.find { it.id == id }?.name ?: "Все материалы"
+                    } ?: "Все материалы",
+                    onValueChange = { name ->
+                        val mat = uiState.materials.find { "${it.name}${if (it.color != null) " (${it.color})" else ""}" == name }
+                        viewModel.updateMaterialFilter(mat?.id)
+                    },
+                    label = "Фильтр по материалу",
+                    options = materialNames
+                )
+                Spacer(modifier = Modifier.height(12.dp))
             }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
 
-        // Filter by material
-        if (uiState.materials.isNotEmpty()) {
-            val materialNames = listOf("Все материалы") + uiState.materials.map { "${it.name}${if (it.color != null) " (${it.color})" else ""}" }
-            AppDropdown(
-                value = uiState.materialFilter?.let { id ->
-                    uiState.materials.find { it.id == id }?.name ?: "Все материалы"
-                } ?: "Все материалы",
-                onValueChange = { name ->
-                    val mat = uiState.materials.find { "${it.name}${if (it.color != null) " (${it.color})" else ""}" == name }
-                    viewModel.updateMaterialFilter(mat?.id)
-                },
-                label = "Фильтр по материалу",
-                options = materialNames
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-
-        when {
-            uiState.isLoading -> LoadingIndicator()
-            uiState.receipts.isEmpty() -> EmptyState("Нет приходов")
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(uiState.receipts, key = { it.id }) { receipt ->
-                    ReceiptItem(
-                        receipt = receipt,
-                        onEdit = { viewModel.openEditDialog(receipt) },
-                        onDelete = { viewModel.showDeleteConfirm(receipt) }
-                    )
+            when {
+                uiState.isLoading -> LoadingIndicator()
+                uiState.receipts.isEmpty() -> EmptyState("Нет приходов")
+                else -> LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 72.dp)
+                ) {
+                    items(uiState.receipts, key = { it.id }) { receipt ->
+                        ReceiptItem(
+                            receipt = receipt,
+                            onEdit = { viewModel.openEditDialog(receipt) },
+                            onDelete = { viewModel.showDeleteConfirm(receipt) }
+                        )
+                    }
                 }
             }
+        }
+
+        FloatingActionButton(
+            onClick = viewModel::openCreateDialog,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            containerColor = Primary,
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Добавить")
         }
     }
 

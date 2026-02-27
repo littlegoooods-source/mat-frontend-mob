@@ -58,7 +58,7 @@ class AuthInterceptor @Inject constructor(
             val json = """{"refreshToken":"$refreshToken"}"""
             val body = json.toRequestBody("application/json".toMediaType())
             val request = okhttp3.Request.Builder()
-                .url("https://mat-backend-r9iw.onrender.com/api/auth/refresh")
+                .url("http://85.239.61.164:9000/api/auth/refresh")
                 .post(body)
                 .build()
 
