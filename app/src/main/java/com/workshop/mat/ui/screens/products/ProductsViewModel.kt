@@ -39,6 +39,7 @@ data class ProductsUiState(
     val formMarkupPercent: String = "100",
     val formRecipeItems: List<RecipeItemForm> = emptyList(),
     val isSaving: Boolean = false,
+    val snackbarMessage: String? = null,
     // Copy
     val showCopyDialog: Boolean = false,
     val productToCopy: ProductListItemDto? = null,
@@ -147,6 +148,7 @@ class ProductsViewModel @Inject constructor(
     fun updateFormRecommendedPrice(v: String) { _uiState.value = _uiState.value.copy(formRecommendedPrice = v) }
     fun updateFormFileLinks(v: String) { _uiState.value = _uiState.value.copy(formFileLinks = v) }
     fun updateFormMarkupPercent(v: String) { _uiState.value = _uiState.value.copy(formMarkupPercent = v) }
+    fun clearSnackbar() { _uiState.value = _uiState.value.copy(snackbarMessage = null) }
 
     fun addRecipeItem() {
         _uiState.value = _uiState.value.copy(
@@ -192,17 +194,24 @@ class ProductsViewModel @Inject constructor(
 
     fun saveProduct() {
         val s = _uiState.value
-        if (s.formName.isBlank()) return
+        if (s.formName.isBlank()) {
+            _uiState.value = s.copy(snackbarMessage = "Укажите название изделия")
+            return
+        }
+
+        val recipeItems = s.formRecipeItems.mapNotNull { item ->
+            val matId = item.materialId.toIntOrNull() ?: return@mapNotNull null
+            val qty = item.quantity.toDoubleOrNull() ?: return@mapNotNull null
+            RecipeItemCreateDto(matId, qty)
+        }
+        if (s.formRecipeItems.isNotEmpty() && recipeItems.size < s.formRecipeItems.size) {
+            _uiState.value = s.copy(snackbarMessage = "Заполните все материалы в рецепте или удалите пустые")
+            return
+        }
 
         viewModelScope.launch {
             _uiState.value = s.copy(isSaving = true)
             try {
-                val recipeItems = s.formRecipeItems.mapNotNull { item ->
-                    val matId = item.materialId.toIntOrNull() ?: return@mapNotNull null
-                    val qty = item.quantity.toDoubleOrNull() ?: return@mapNotNull null
-                    RecipeItemCreateDto(matId, qty)
-                }
-
                 if (s.editingProduct != null) {
                     apiService.updateProduct(s.editingProduct.id, ProductUpdateDto(
                         name = s.formName, category = s.formCategory.ifBlank { null },
@@ -232,7 +241,7 @@ class ProductsViewModel @Inject constructor(
                 loadProducts()
                 loadCategories()
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isSaving = false, error = e.localizedMessage)
+                _uiState.value = _uiState.value.copy(isSaving = false, snackbarMessage = e.localizedMessage ?: "Ошибка сохранения")
             }
         }
     }
@@ -276,7 +285,9 @@ class ProductsViewModel @Inject constructor(
                 apiService.deleteProduct(product.id)
                 _uiState.value = _uiState.value.copy(showDeleteConfirm = null)
                 loadProducts()
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(showDeleteConfirm = null, snackbarMessage = e.localizedMessage ?: "Ошибка удаления")
+            }
         }
     }
 }

@@ -36,7 +36,8 @@ data class SettingsUiState(
     val showLeaveConfirm: Boolean = false,
     val showDeleteOrgConfirm: Boolean = false,
     val showRemoveMemberConfirm: OrganizationMemberDto? = null,
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val snackbarMessage: String? = null
 )
 
 @HiltViewModel
@@ -49,6 +50,14 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init { loadData() }
+
+    fun clearSnackbar() {
+        _uiState.value = _uiState.value.copy(snackbarMessage = null)
+    }
+
+    fun showSnackbar(msg: String) {
+        _uiState.value = _uiState.value.copy(snackbarMessage = msg)
+    }
 
     fun loadData() {
         viewModelScope.launch {
@@ -90,7 +99,9 @@ class SettingsViewModel @Inject constructor(
                     tokenManager.organizations = body.organizations ?: emptyList()
                     loadData()
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                showSnackbar(e.localizedMessage ?: "Ошибка переключения организации")
+            }
         }
     }
 
@@ -179,7 +190,9 @@ class SettingsViewModel @Inject constructor(
                     tokenManager.organizations = orgsResponse.body() ?: emptyList()
                 }
                 loadData()
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                showSnackbar(e.localizedMessage ?: "Ошибка принятия приглашения")
+            }
         }
     }
 
@@ -188,7 +201,9 @@ class SettingsViewModel @Inject constructor(
             try {
                 apiService.rejectInvitation(token)
                 loadData()
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                showSnackbar(e.localizedMessage ?: "Ошибка отклонения приглашения")
+            }
         }
     }
 
@@ -202,7 +217,6 @@ class SettingsViewModel @Inject constructor(
             try {
                 apiService.leaveOrganization(orgId)
                 _uiState.value = _uiState.value.copy(showLeaveConfirm = false)
-                // Switch to personal org
                 val orgsResponse = apiService.getAuthOrganizations()
                 if (orgsResponse.isSuccessful) {
                     val orgs = orgsResponse.body() ?: emptyList()
@@ -210,7 +224,10 @@ class SettingsViewModel @Inject constructor(
                     val personal = orgs.find { it.isPersonal }
                     if (personal != null) switchOrganization(personal.organizationId)
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(showLeaveConfirm = false)
+                showSnackbar(e.localizedMessage ?: "Ошибка выхода из организации")
+            }
         }
     }
 
@@ -226,7 +243,10 @@ class SettingsViewModel @Inject constructor(
                 apiService.removeMember(orgId, member.id)
                 _uiState.value = _uiState.value.copy(showRemoveMemberConfirm = null)
                 loadData()
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(showRemoveMemberConfirm = null)
+                showSnackbar(e.localizedMessage ?: "Ошибка удаления участника")
+            }
         }
     }
 
@@ -247,7 +267,10 @@ class SettingsViewModel @Inject constructor(
                     val personal = orgs.find { it.isPersonal }
                     if (personal != null) switchOrganization(personal.organizationId)
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(showDeleteOrgConfirm = false)
+                showSnackbar(e.localizedMessage ?: "Ошибка удаления организации")
+            }
         }
     }
 

@@ -31,7 +31,7 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
                 Checkbox(
                     checked = uiState.includeCancelled,
                     onCheckedChange = { viewModel.toggleIncludeCancelled() },
-                    colors = CheckboxDefaults.colors(checkedColor = Primary, uncheckedColor = TextMuted)
+                    colors = CheckboxDefaults.colors(checkedColor = SelectionOrange, uncheckedColor = TextMuted)
                 )
                 Text("Отменённые", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
             }

@@ -31,9 +31,15 @@ data class MaterialReceiptListItemDto(
     val materialUnit: String = "",
     val quantity: Double = 0.0,
     val pricePerUnit: Double = 0.0,
+    val unitPrice: Double = 0.0,
     val totalPrice: Double = 0.0,
     val supplier: String? = null,
+    val purchaseSource: String? = null,
+    val batchNumber: String? = null,
     val notes: String? = null,
+    val comment: String? = null,
+    val remainingQuantity: Double = 0.0,
+    val hasUsedMaterials: Boolean = false,
     val receiptDate: String = "",
     val createdAt: String = ""
 )
@@ -44,9 +50,13 @@ data class MaterialReceiptResponseDto(
     val materialName: String = "",
     val quantity: Double = 0.0,
     val pricePerUnit: Double = 0.0,
+    val unitPrice: Double = 0.0,
     val totalPrice: Double = 0.0,
     val supplier: String? = null,
+    val purchaseSource: String? = null,
+    val batchNumber: String? = null,
     val notes: String? = null,
+    val comment: String? = null,
     val receiptDate: String = "",
     val createdAt: String = ""
 )
@@ -55,8 +65,13 @@ data class MaterialReceiptCreateDto(
     val materialId: Int,
     val quantity: Double,
     val pricePerUnit: Double,
+    val unitPrice: Double? = null,
+    val totalPrice: Double? = null,
     val supplier: String? = null,
+    val purchaseSource: String? = null,
+    val batchNumber: String? = null,
     val notes: String? = null,
+    val comment: String? = null,
     val receiptDate: String? = null
 )
 
@@ -64,7 +79,12 @@ data class MaterialReceiptUpdateDto(
     val materialId: Int,
     val quantity: Double,
     val pricePerUnit: Double,
+    val unitPrice: Double? = null,
+    val totalPrice: Double? = null,
     val supplier: String? = null,
+    val purchaseSource: String? = null,
+    val batchNumber: String? = null,
     val notes: String? = null,
+    val comment: String? = null,
     val receiptDate: String? = null
 )

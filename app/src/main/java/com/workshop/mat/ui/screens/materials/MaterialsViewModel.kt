@@ -28,7 +28,8 @@ data class MaterialsUiState(
     val formDescription: String = "",
     val formMinimumStock: String = "",
     val isSaving: Boolean = false,
-    val showDeleteConfirm: MaterialListItemDto? = null
+    val showDeleteConfirm: MaterialListItemDto? = null,
+    val snackbarMessage: String? = null
 )
 
 @HiltViewModel
@@ -90,7 +91,11 @@ class MaterialsViewModel @Inject constructor(
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(categories = response.body() ?: emptyList())
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    snackbarMessage = e.localizedMessage ?: "Ошибка загрузки категорий"
+                )
+            }
         }
     }
 
@@ -151,7 +156,10 @@ class MaterialsViewModel @Inject constructor(
                 loadMaterials()
                 loadCategories()
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isSaving = false, error = e.localizedMessage)
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    snackbarMessage = e.localizedMessage ?: "Ошибка сохранения"
+                )
             }
         }
     }
@@ -159,10 +167,24 @@ class MaterialsViewModel @Inject constructor(
     fun archiveMaterial(material: MaterialListItemDto) {
         viewModelScope.launch {
             try {
-                if (material.isArchived) apiService.unarchiveMaterial(material.id)
+                val response = if (material.isArchived) apiService.unarchiveMaterial(material.id)
                 else apiService.archiveMaterial(material.id)
-                loadMaterials()
-            } catch (_: Exception) {}
+                if (response.isSuccessful) {
+                    loadMaterials()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val message = try {
+                        com.google.gson.JsonParser.parseString(errorBody).asJsonObject.get("message")?.asString
+                    } catch (_: Exception) { null }
+                    _uiState.value = _uiState.value.copy(
+                        snackbarMessage = message ?: "Ошибка архивирования"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    snackbarMessage = e.localizedMessage ?: "Ошибка архивирования"
+                )
+            }
         }
     }
 
@@ -174,14 +196,34 @@ class MaterialsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(showDeleteConfirm = null)
     }
 
+    fun clearSnackbar() {
+        _uiState.value = _uiState.value.copy(snackbarMessage = null)
+    }
+
     fun deleteMaterial() {
         val material = _uiState.value.showDeleteConfirm ?: return
         viewModelScope.launch {
             try {
-                apiService.deleteMaterial(material.id)
-                _uiState.value = _uiState.value.copy(showDeleteConfirm = null)
-                loadMaterials()
-            } catch (_: Exception) {}
+                val response = apiService.deleteMaterial(material.id)
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(showDeleteConfirm = null)
+                    loadMaterials()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val message = try {
+                        com.google.gson.JsonParser.parseString(errorBody).asJsonObject.get("message")?.asString
+                    } catch (_: Exception) { null }
+                    _uiState.value = _uiState.value.copy(
+                        showDeleteConfirm = null,
+                        snackbarMessage = message ?: "Невозможно удалить материал: он используется"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    showDeleteConfirm = null,
+                    snackbarMessage = e.localizedMessage ?: "Ошибка удаления"
+                )
+            }
         }
     }
 }

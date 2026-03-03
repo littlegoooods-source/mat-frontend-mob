@@ -22,6 +22,14 @@ import java.util.Locale
 @Composable
 fun MaterialsScreen(viewModel: MaterialsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
+            viewModel.clearSnackbar()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -44,7 +52,7 @@ fun MaterialsScreen(viewModel: MaterialsViewModel = hiltViewModel()) {
                     Checkbox(
                         checked = uiState.includeArchived,
                         onCheckedChange = { viewModel.toggleIncludeArchived() },
-                        colors = CheckboxDefaults.colors(checkedColor = Primary, uncheckedColor = TextMuted)
+                        colors = CheckboxDefaults.colors(checkedColor = SelectionOrange, uncheckedColor = TextMuted)
                     )
                     Text("Архивные", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
@@ -69,6 +77,17 @@ fun MaterialsScreen(viewModel: MaterialsViewModel = hiltViewModel()) {
                     }
                 }
             }
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp)
+        ) { data ->
+            Snackbar(
+                snackbarData = data,
+                containerColor = Error,
+                contentColor = TextPrimary
+            )
         }
 
         FloatingActionButton(
@@ -123,22 +142,23 @@ private fun MaterialItem(
                     }
                 }
                 Text(
-                    "${material.currentStock} ${material.unit} | ${material.category ?: "-"}",
+                    formatCurrency(material.averagePrice),
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary
                 )
-                if (material.isBelowMinimum) {
-                    StatusBadge(text = "Мало", color = Warning, bgColor = WarningBg)
-                } else if (material.isArchived) {
-                    StatusBadge(text = "Архив", color = TextMuted, bgColor = DarkSurfaceVariant)
-                }
-            }
-            Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    formatCurrency(material.averagePrice),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = TextSecondary
+                    "${material.currentStock} ${material.unit} | ${material.category ?: "-"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted
                 )
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (material.isBelowMinimum) {
+                        StatusBadge(text = "Мало", color = Warning, bgColor = WarningBg)
+                    }
+                    if (material.isArchived) {
+                        StatusBadge(text = "Архив", color = TextMuted, bgColor = DarkSurfaceVariant)
+                    }
+                }
             }
             Row {
                 IconButton(onClick = onEdit) {

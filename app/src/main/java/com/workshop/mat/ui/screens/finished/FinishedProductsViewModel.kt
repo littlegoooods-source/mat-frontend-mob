@@ -26,7 +26,8 @@ data class FinishedProductsUiState(
     val showReturnConfirm: FinishedProductListItemDto? = null,
     // Delete confirm
     val showDeleteConfirm: FinishedProductListItemDto? = null,
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val snackbarMessage: String? = null
 )
 
 @HiltViewModel
@@ -64,6 +65,10 @@ class FinishedProductsViewModel @Inject constructor(
     fun closeSellDialog() { _uiState.value = _uiState.value.copy(showSellDialog = null) }
     fun updateSellPrice(v: String) { _uiState.value = _uiState.value.copy(sellPrice = v) }
 
+    fun clearSnackbar() {
+        _uiState.value = _uiState.value.copy(snackbarMessage = null)
+    }
+
     fun sellProduct() {
         val item = _uiState.value.showSellDialog ?: return
         val price = _uiState.value.sellPrice.toDoubleOrNull() ?: return
@@ -74,7 +79,10 @@ class FinishedProductsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isSaving = false, showSellDialog = null)
                 loadItems()
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isSaving = false, error = e.localizedMessage)
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    snackbarMessage = e.localizedMessage ?: "Ошибка продажи"
+                )
             }
         }
     }
@@ -95,7 +103,10 @@ class FinishedProductsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isSaving = false, showWriteOffDialog = null)
                 loadItems()
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isSaving = false, error = e.localizedMessage)
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    snackbarMessage = e.localizedMessage ?: "Ошибка списания"
+                )
             }
         }
     }
@@ -110,7 +121,12 @@ class FinishedProductsViewModel @Inject constructor(
                 apiService.returnToStock(item.id)
                 _uiState.value = _uiState.value.copy(showReturnConfirm = null)
                 loadItems()
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    showReturnConfirm = null,
+                    snackbarMessage = e.localizedMessage ?: "Ошибка возврата на склад"
+                )
+            }
         }
     }
 
@@ -124,7 +140,12 @@ class FinishedProductsViewModel @Inject constructor(
                 apiService.deleteFinishedProduct(item.id)
                 _uiState.value = _uiState.value.copy(showDeleteConfirm = null)
                 loadItems()
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    showDeleteConfirm = null,
+                    snackbarMessage = e.localizedMessage ?: "Ошибка удаления"
+                )
+            }
         }
     }
 }

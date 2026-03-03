@@ -17,49 +17,75 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.workshop.mat.data.model.FinishedProductListItemDto
 import com.workshop.mat.ui.components.*
 import com.workshop.mat.ui.theme.*
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.runtime.LaunchedEffect
 import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
 fun FinishedProductsScreen(viewModel: FinishedProductsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
     val statuses = listOf("", "InStock", "Sold", "WrittenOff")
     val statusLabels = listOf("Все", "На складе", "Продано", "Списано")
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
+            viewModel.clearSnackbar()
+        }
+    }
 
-        AppDropdown(
-            value = statusLabels[statuses.indexOf(uiState.statusFilter).coerceAtLeast(0)],
-            onValueChange = { label ->
-                val idx = statusLabels.indexOf(label)
-                viewModel.updateStatusFilter(statuses.getOrElse(idx) { "" })
-            },
-            label = "Статус",
-            options = statusLabels
-        )
-        Spacer(modifier = Modifier.height(12.dp))
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
 
-        when {
-            uiState.isLoading -> LoadingIndicator()
-            uiState.items.isEmpty() -> EmptyState("Нет готовой продукции")
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(uiState.items, key = { it.id }) { item ->
-                    FinishedProductItem(
-                        item = item,
-                        onSell = { viewModel.openSellDialog(item) },
-                        onWriteOff = { viewModel.openWriteOffDialog(item) },
-                        onReturn = { viewModel.showReturnConfirm(item) },
-                        onDelete = { viewModel.showDeleteConfirm(item) }
-                    )
+            AppDropdown(
+                value = statusLabels[statuses.indexOf(uiState.statusFilter).coerceAtLeast(0)],
+                onValueChange = { label ->
+                    val idx = statusLabels.indexOf(label)
+                    viewModel.updateStatusFilter(statuses.getOrElse(idx) { "" })
+                },
+                label = "Статус",
+                options = statusLabels
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            when {
+                uiState.isLoading -> LoadingIndicator()
+                uiState.items.isEmpty() -> EmptyState("Нет готовой продукции")
+                else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(uiState.items, key = { it.id }) { item ->
+                        FinishedProductItem(
+                            item = item,
+                            onSell = { viewModel.openSellDialog(item) },
+                            onWriteOff = { viewModel.openWriteOffDialog(item) },
+                            onReturn = { viewModel.showReturnConfirm(item) },
+                            onDelete = { viewModel.showDeleteConfirm(item) }
+                        )
+                    }
                 }
             }
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp)
+        ) { data ->
+            Snackbar(
+                snackbarData = data,
+                containerColor = Error,
+                contentColor = TextPrimary
+            )
         }
     }
 
     // Sell dialog
     uiState.showSellDialog?.let { item ->
+        val cost = item.costPerUnit.takeIf { it > 0 } ?: item.materialCost
         SmallDialog(title = "Продажа: ${item.productName}", onDismiss = viewModel::closeSellDialog) {
-            Text("Себестоимость: ${fmtCur(item.materialCost)}", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+            Text("Себестоимость: ${fmtCur(cost)}", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
             Spacer(modifier = Modifier.height(12.dp))
             AppTextField(
                 value = uiState.sellPrice,
@@ -151,6 +177,8 @@ private fun FinishedProductItem(
         else -> item.status
     }
 
+    val cost = if (item.costPerUnit > 0) item.costPerUnit else item.materialCost
+
     Surface(shape = RoundedCornerShape(12.dp), color = DarkCard) {
         Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -158,10 +186,22 @@ private fun FinishedProductItem(
                     Text(item.productName, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         StatusBadge(text = statusText, color = statusColor, bgColor = statusColor.copy(alpha = 0.15f))
-                        Text("Себест: ${fmtCur(item.materialCost)}", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                        Text("Себест: ${fmtCur(cost)}", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                    }
+                    if (item.batchNumber.isNotBlank()) {
+                        Text("Партия: ${item.batchNumber}", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                    }
+                    if (item.productionDate.isNotBlank()) {
+                        Text("Дата произв: ${item.productionDate.take(10)}", style = MaterialTheme.typography.bodySmall, color = TextMuted)
                     }
                     if (item.sellPrice != null) {
                         Text("Продано за: ${fmtCur(item.sellPrice)}", style = MaterialTheme.typography.bodySmall, color = Success)
+                    }
+                    if (!item.client.isNullOrBlank()) {
+                        Text("Клиент: ${item.client}", style = MaterialTheme.typography.bodySmall, color = Info)
+                    }
+                    if (!item.saleDate.isNullOrBlank()) {
+                        Text("Дата продажи: ${item.saleDate.take(10)}", style = MaterialTheme.typography.bodySmall, color = TextMuted)
                     }
                 }
             }

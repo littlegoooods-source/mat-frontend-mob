@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -18,6 +19,7 @@ import com.workshop.mat.data.model.ProductionListItemDto
 import com.workshop.mat.ui.components.*
 import com.workshop.mat.ui.theme.*
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
@@ -25,6 +27,14 @@ fun ProductionsScreen(viewModel: ProductionsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val statuses = listOf("", "Completed", "Cancelled")
     val statusLabels = listOf("Все", "Завершённые", "Отменённые")
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearSnackbar()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -65,6 +75,11 @@ fun ProductionsScreen(viewModel: ProductionsViewModel = hiltViewModel()) {
         ) {
             Icon(Icons.Default.Add, contentDescription = "Произвести")
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp)
+        )
     }
 
     // Create dialog
@@ -104,25 +119,44 @@ fun ProductionsScreen(viewModel: ProductionsViewModel = hiltViewModel()) {
                 }
             }
             uiState.availability?.let { avail ->
+                val isAvailable = avail.canProduce || avail.isAvailable
+                val allMaterials = avail.materials.ifEmpty { avail.missingMaterials }
+
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (avail.isAvailable) SuccessBg else ErrorBg
+                    color = if (isAvailable) SuccessBg else ErrorBg
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            if (avail.isAvailable) "Материалы доступны" else "Недостаточно материалов",
-                            color = if (avail.isAvailable) Success else Error,
+                            if (isAvailable) "Материалы доступны" else "Недостаточно материалов",
+                            color = if (isAvailable) Success else Error,
                             style = MaterialTheme.typography.labelLarge
                         )
-                        if (!avail.isAvailable && avail.missingMaterials.isNotEmpty()) {
+                        if (allMaterials.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(8.dp))
-                            avail.missingMaterials.forEach { m ->
+                            allMaterials.forEach { m ->
+                                val reqQty = if (m.requiredQuantity > 0) m.requiredQuantity else m.required
+                                val availQty = if (m.availableQuantity > 0) m.availableQuantity else m.available
+                                val matAvailable = m.isAvailable || availQty >= reqQty
                                 Text(
-                                    "${m.materialName}: нужно ${m.required}, есть ${m.available} ${m.materialUnit}",
+                                    "${m.materialName}: ${fmtQty(reqQty)} / ${fmtQty(availQty)} ${m.materialUnit}",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Error
+                                    color = if (matAvailable) Success else Error
                                 )
                             }
+                        }
+                        if (avail.estimatedCostPerUnit > 0) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Себестоимость единицы: ${fmtCur(avail.estimatedCostPerUnit)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                            Text(
+                                "Общая себестоимость: ${fmtCur(avail.estimatedTotalCost)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
                         }
                     }
                 }
@@ -134,7 +168,7 @@ fun ProductionsScreen(viewModel: ProductionsViewModel = hiltViewModel()) {
                     onClick = viewModel::createProduction,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                    enabled = !uiState.isSaving && (uiState.availability?.isAvailable ?: false)
+                    enabled = !uiState.isSaving && (uiState.availability?.let { it.canProduce || it.isAvailable } ?: false)
                 ) { Text("Произвести") }
                 OutlinedButton(onClick = viewModel::closeCreateDialog, modifier = Modifier.weight(1f)) {
                     Text("Отмена", color = TextSecondary)
@@ -172,37 +206,86 @@ private fun ProductionItem(
     onCancel: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val statusColor = when (production.status.lowercase()) {
-        "completed" -> Success
-        "cancelled" -> Error
+    val isCancelled = production.isCancelled || production.status.equals("Cancelled", ignoreCase = true)
+    val statusColor = when {
+        isCancelled -> Error
+        production.status.equals("Completed", ignoreCase = true) -> Success
         else -> Primary
     }
-    val statusText = when (production.status.lowercase()) {
-        "completed" -> "Завершено"
-        "cancelled" -> "Отменено"
+    val statusText = when {
+        isCancelled -> "Отменено"
+        production.status.equals("Completed", ignoreCase = true) -> "Завершено"
         else -> production.status
     }
+    val displayDate = formatIsoDate(
+        production.productionDate.ifEmpty { production.createdAt }
+    )
+    val totalCost = if (production.totalCost > 0) production.totalCost else production.totalMaterialCost
 
     Surface(shape = RoundedCornerShape(12.dp), color = DarkCard) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(production.productName, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-                Text("Количество: ${production.quantity} шт", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        production.productName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (production.batchNumber.isNotEmpty()) {
+                        Text(
+                            "Партия: ${production.batchNumber}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextMuted
+                        )
+                    }
+                }
                 StatusBadge(text = statusText, color = statusColor, bgColor = statusColor.copy(alpha = 0.15f))
             }
-            Text(
-                fmtCur(production.totalMaterialCost),
-                style = MaterialTheme.typography.labelMedium,
-                color = TextSecondary
-            )
-            if (production.status.lowercase() == "completed") {
-                IconButton(onClick = onCancel) { Icon(Icons.Default.Cancel, null, tint = Warning, modifier = Modifier.size(20.dp)) }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                InfoColumn("Дата", displayDate)
+                InfoColumn("Кол-во", "${production.quantity} шт")
+                InfoColumn("Себест.", if (production.costPerUnit > 0) fmtCur(production.costPerUnit) else "—")
+                InfoColumn("Сумма", if (totalCost > 0) fmtCur(totalCost) else "—")
             }
-            IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, null, tint = Error, modifier = Modifier.size(20.dp)) }
+
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "На складе: ${production.inStockCount} шт",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
+                Row {
+                    if (production.status.equals("Completed", ignoreCase = true) && !isCancelled) {
+                        IconButton(onClick = onCancel, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.Cancel, null, tint = Warning, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                    IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Default.Delete, null, tint = Error, modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun InfoColumn(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = TextMuted)
+        Text(value, style = MaterialTheme.typography.bodySmall, color = TextPrimary)
     }
 }
 
@@ -210,4 +293,20 @@ private fun fmtCur(value: Double): String {
     val f = NumberFormat.getCurrencyInstance(Locale("ru", "RU"))
     f.maximumFractionDigits = 0
     return f.format(value)
+}
+
+private fun fmtQty(value: Double): String {
+    return if (value == value.toLong().toDouble()) value.toLong().toString()
+    else String.format(Locale.US, "%.2f", value)
+}
+
+private fun formatIsoDate(isoString: String): String {
+    if (isoString.isBlank()) return "—"
+    return try {
+        val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+        val date = parser.parse(isoString.take(19)) ?: return isoString.take(10)
+        SimpleDateFormat("dd.MM.yyyy", Locale("ru", "RU")).format(date)
+    } catch (_: Exception) {
+        isoString.take(10)
+    }
 }

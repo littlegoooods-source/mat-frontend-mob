@@ -11,11 +11,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.runtime.LaunchedEffect
 import com.workshop.mat.ui.components.*
 import com.workshop.mat.ui.theme.*
 
@@ -25,8 +31,18 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val clipboardManager = LocalClipboardManager.current
 
-    Column(
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
+            viewModel.clearSnackbar()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
@@ -81,7 +97,7 @@ fun SettingsScreen(
                         .padding(vertical = 4.dp)
                         .clickable { if (!isCurrent) viewModel.switchOrganization(org.organizationId) },
                     shape = RoundedCornerShape(10.dp),
-                    color = if (isCurrent) Primary.copy(alpha = 0.15f) else DarkSurfaceVariant.copy(alpha = 0.5f)
+                    color = if (isCurrent) SelectionOrangeBg else DarkSurfaceVariant.copy(alpha = 0.5f)
                 ) {
                     Row(
                         modifier = Modifier.padding(12.dp),
@@ -96,7 +112,7 @@ fun SettingsScreen(
                             )
                         }
                         if (isCurrent) {
-                            Icon(Icons.Default.Check, null, tint = Primary, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Check, null, tint = SelectionOrange, modifier = Modifier.size(20.dp))
                         }
                     }
                 }
@@ -122,7 +138,16 @@ fun SettingsScreen(
 
                     if (org.joinCode != null) {
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Код присоединения: ${org.joinCode}", style = MaterialTheme.typography.bodySmall, color = Info)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Код: ${org.joinCode}", style = MaterialTheme.typography.bodySmall, color = Info)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(onClick = {
+                                clipboardManager.setText(AnnotatedString(org.joinCode))
+                                viewModel.showSnackbar("Код скопирован")
+                            }) {
+                                Icon(Icons.Default.ContentCopy, null, tint = Primary, modifier = Modifier.size(18.dp))
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -208,6 +233,18 @@ fun SettingsScreen(
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+    }
+
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp)
+    ) { data ->
+        Snackbar(
+            snackbarData = data,
+            containerColor = Error,
+            contentColor = TextPrimary
+        )
+    }
     }
 
     // Dialogs

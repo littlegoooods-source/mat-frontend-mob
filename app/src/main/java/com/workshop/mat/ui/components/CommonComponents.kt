@@ -76,7 +76,7 @@ fun SearchBar(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Primary,
+            focusedBorderColor = SelectionOrange,
             unfocusedBorderColor = DarkBorder,
             focusedContainerColor = DarkSurface,
             unfocusedContainerColor = DarkSurface,
@@ -113,14 +113,14 @@ fun AppTextField(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Primary,
+            focusedBorderColor = SelectionOrange,
             unfocusedBorderColor = DarkBorder,
             focusedContainerColor = DarkSurface,
             unfocusedContainerColor = DarkSurface,
-            cursorColor = Primary,
+            cursorColor = SelectionOrange,
             focusedTextColor = TextPrimary,
             unfocusedTextColor = TextPrimary,
-            focusedLabelColor = Primary,
+            focusedLabelColor = SelectionOrange,
             unfocusedLabelColor = TextSecondary,
             errorBorderColor = Error,
             disabledBorderColor = DarkBorder.copy(alpha = 0.5f),
@@ -175,13 +175,13 @@ fun AppDropdown(
                 .menuAnchor(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Primary,
+                focusedBorderColor = SelectionOrange,
                 unfocusedBorderColor = DarkBorder,
                 focusedContainerColor = DarkSurface,
                 unfocusedContainerColor = DarkSurface,
                 focusedTextColor = TextPrimary,
                 unfocusedTextColor = TextPrimary,
-                focusedLabelColor = Primary,
+                focusedLabelColor = SelectionOrange,
                 unfocusedLabelColor = TextSecondary
             )
         )

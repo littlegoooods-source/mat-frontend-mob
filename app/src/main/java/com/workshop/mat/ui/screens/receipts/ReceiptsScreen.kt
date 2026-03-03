@@ -23,6 +23,14 @@ import java.util.Locale
 @Composable
 fun ReceiptsScreen(viewModel: ReceiptsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
+            viewModel.clearSnackbar()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -68,6 +76,11 @@ fun ReceiptsScreen(viewModel: ReceiptsViewModel = hiltViewModel()) {
         ) {
             Icon(Icons.Default.Add, contentDescription = "Добавить")
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp)
+        )
     }
 
     if (uiState.showDialog) {
@@ -145,11 +158,17 @@ private fun ReceiptFormDialog(uiState: ReceiptsUiState, viewModel: ReceiptsViewM
         Spacer(modifier = Modifier.height(12.dp))
         AppTextField(value = uiState.formQuantity, onValueChange = viewModel::updateFormQuantity, label = "Количество", keyboardType = KeyboardType.Decimal)
         Spacer(modifier = Modifier.height(12.dp))
-        AppTextField(value = uiState.formPricePerUnit, onValueChange = viewModel::updateFormPricePerUnit, label = "Цена за единицу", keyboardType = KeyboardType.Decimal)
+        AppTextField(value = uiState.formPricePerUnit, onValueChange = viewModel::updateFormPricePerUnit, label = "Цена за ед.", keyboardType = KeyboardType.Decimal)
         Spacer(modifier = Modifier.height(12.dp))
-        AppTextField(value = uiState.formSupplier, onValueChange = viewModel::updateFormSupplier, label = "Поставщик", placeholder = "Опционально")
+        AppTextField(value = uiState.formTotalPrice, onValueChange = viewModel::updateFormTotalPrice, label = "Общая сумма", keyboardType = KeyboardType.Decimal, enabled = false)
         Spacer(modifier = Modifier.height(12.dp))
-        AppTextField(value = uiState.formNotes, onValueChange = viewModel::updateFormNotes, label = "Примечание", placeholder = "Опционально", singleLine = false)
+        AppTextField(value = uiState.formReceiptDate, onValueChange = viewModel::updateFormReceiptDate, label = "Дата поступления", placeholder = "yyyy-MM-dd")
+        Spacer(modifier = Modifier.height(12.dp))
+        AppTextField(value = uiState.formBatchNumber, onValueChange = viewModel::updateFormBatchNumber, label = "Номер партии", placeholder = "Опционально")
+        Spacer(modifier = Modifier.height(12.dp))
+        AppTextField(value = uiState.formSupplier, onValueChange = viewModel::updateFormSupplier, label = "Место покупки", placeholder = "Опционально")
+        Spacer(modifier = Modifier.height(12.dp))
+        AppTextField(value = uiState.formNotes, onValueChange = viewModel::updateFormNotes, label = "Комментарий", placeholder = "Опционально", singleLine = false)
         Spacer(modifier = Modifier.height(20.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(

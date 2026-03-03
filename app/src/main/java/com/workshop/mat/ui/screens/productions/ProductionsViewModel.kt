@@ -27,7 +27,9 @@ data class ProductionsUiState(
     val isSaving: Boolean = false,
     // Cancel / delete
     val showCancelConfirm: ProductionListItemDto? = null,
-    val showDeleteConfirm: ProductionListItemDto? = null
+    val showDeleteConfirm: ProductionListItemDto? = null,
+    // Snackbar
+    val snackbarMessage: String? = null
 )
 
 @HiltViewModel
@@ -42,6 +44,8 @@ class ProductionsViewModel @Inject constructor(
         loadProductions()
         loadProducts()
     }
+
+    fun clearSnackbar() { _uiState.value = _uiState.value.copy(snackbarMessage = null) }
 
     fun updateStatusFilter(v: String) { _uiState.value = _uiState.value.copy(statusFilter = v); loadProductions() }
 
@@ -118,14 +122,24 @@ class ProductionsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = s.copy(isSaving = true)
             try {
-                apiService.createProduction(ProductionCreateDto(
+                val response = apiService.createProduction(ProductionCreateDto(
                     productId = productId, quantity = quantity,
                     notes = s.formNotes.ifBlank { null }
                 ))
-                _uiState.value = _uiState.value.copy(isSaving = false, showCreateDialog = false)
-                loadProductions()
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(isSaving = false, showCreateDialog = false)
+                    loadProductions()
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isSaving = false,
+                        snackbarMessage = "Ошибка создания производства"
+                    )
+                }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isSaving = false, error = e.localizedMessage)
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    snackbarMessage = e.localizedMessage ?: "Ошибка создания производства"
+                )
             }
         }
     }
@@ -136,10 +150,19 @@ class ProductionsViewModel @Inject constructor(
         val p = _uiState.value.showCancelConfirm ?: return
         viewModelScope.launch {
             try {
-                apiService.cancelProduction(p.id)
+                val response = apiService.cancelProduction(p.id)
                 _uiState.value = _uiState.value.copy(showCancelConfirm = null)
-                loadProductions()
-            } catch (_: Exception) {}
+                if (response.isSuccessful) {
+                    loadProductions()
+                } else {
+                    _uiState.value = _uiState.value.copy(snackbarMessage = "Ошибка отмены производства")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    showCancelConfirm = null,
+                    snackbarMessage = e.localizedMessage ?: "Ошибка отмены производства"
+                )
+            }
         }
     }
 
@@ -149,10 +172,19 @@ class ProductionsViewModel @Inject constructor(
         val p = _uiState.value.showDeleteConfirm ?: return
         viewModelScope.launch {
             try {
-                apiService.deleteProduction(p.id)
+                val response = apiService.deleteProduction(p.id)
                 _uiState.value = _uiState.value.copy(showDeleteConfirm = null)
-                loadProductions()
-            } catch (_: Exception) {}
+                if (response.isSuccessful) {
+                    loadProductions()
+                } else {
+                    _uiState.value = _uiState.value.copy(snackbarMessage = "Ошибка удаления производства")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    showDeleteConfirm = null,
+                    snackbarMessage = e.localizedMessage ?: "Ошибка удаления производства"
+                )
+            }
         }
     }
 }

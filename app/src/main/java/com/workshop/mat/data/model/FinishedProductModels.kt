@@ -5,9 +5,15 @@ data class FinishedProductListItemDto(
     val productId: Int = 0,
     val productName: String = "",
     val productionId: Int? = null,
+    val batchNumber: String = "",
+    val productionDate: String = "",
     val status: String = "",
     val materialCost: Double = 0.0,
+    val costPerUnit: Double = 0.0,
     val sellPrice: Double? = null,
+    val recommendedPrice: Double? = null,
+    val client: String? = null,
+    val saleDate: String? = null,
     val createdAt: String = "",
     val soldAt: String? = null,
     val writtenOffAt: String? = null
@@ -20,6 +26,7 @@ data class FinishedProductResponseDto(
     val productionId: Int? = null,
     val status: String = "",
     val materialCost: Double = 0.0,
+    val costPerUnit: Double = 0.0,
     val sellPrice: Double? = null,
     val profit: Double? = null,
     val createdAt: String = "",
@@ -48,5 +55,6 @@ data class FinishedProductSummaryDto(
     val totalWrittenOff: Int = 0,
     val totalInStockValue: Double = 0.0,
     val totalSalesRevenue: Double = 0.0,
+    val totalSalesAmount: Double = 0.0,
     val totalProfit: Double = 0.0
 )

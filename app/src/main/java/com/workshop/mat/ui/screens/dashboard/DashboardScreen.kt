@@ -275,7 +275,7 @@ private fun SalesChartSection(
                             .weight(1f)
                             .clickable { onPeriodChange(period) },
                         shape = RoundedCornerShape(10.dp),
-                        color = if (selected) Primary else DarkSurfaceVariant.copy(alpha = 0.5f)
+                        color = if (selected) SelectionOrange else DarkSurfaceVariant.copy(alpha = 0.5f)
                     ) {
                         Text(
                             text = period.label,
@@ -326,10 +326,10 @@ private fun SalesChartSection(
                         }
                     }
 
-                    // Bar chart showing sales by product
-                    if (salesData.items.isNotEmpty()) {
-                        SalesBarChart(
-                            items = salesData.items.sortedByDescending { it.revenue }.take(7),
+                    // Line chart showing sales over time
+                    if (uiState.salesTimeSeries.any { it.salesCount > 0 }) {
+                        SalesLineChart(
+                            points = uiState.salesTimeSeries,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(200.dp)
@@ -343,7 +343,7 @@ private fun SalesChartSection(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(
-                                    Icons.Default.BarChart,
+                                    Icons.Default.ShowChart,
                                     contentDescription = null,
                                     tint = TextMuted,
                                     modifier = Modifier.size(36.dp)
@@ -358,7 +358,6 @@ private fun SalesChartSection(
                         }
                     }
 
-                    // Total sales count
                     if (salesData.totalSales > 0) {
                         Text(
                             text = "Всего продаж: ${salesData.totalSales}",
@@ -386,104 +385,122 @@ private fun SalesChartSection(
     }
 }
 
-// ======================== BAR CHART ========================
+// ======================== LINE CHART ========================
 
 @Composable
-private fun SalesBarChart(
-    items: List<com.workshop.mat.data.model.SalesReportItemDto>,
+private fun SalesLineChart(
+    points: List<SalesTimePoint>,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
-    val textColorInt = android.graphics.Color.argb(180, 148, 163, 184) // TextSecondary
+    val textColorInt = android.graphics.Color.argb(180, 148, 163, 184)
 
-    Canvas(modifier = modifier) {
-        if (items.isEmpty()) return@Canvas
+    Column {
+        Canvas(modifier = modifier) {
+            if (points.size < 2) return@Canvas
 
-        val maxRevenue = items.maxOf { it.revenue }.coerceAtLeast(1.0)
-        val barCount = items.size
-        val chartLeft = 0f
-        val chartRight = size.width
-        val chartTop = 10f
-        val chartBottom = size.height - 50f
-        val chartHeight = chartBottom - chartTop
+            val maxSales = points.maxOf { it.salesCount }.coerceAtLeast(1)
+            val leftPad = 40f
+            val chartLeft = leftPad
+            val chartRight = size.width - 10f
+            val chartTop = 20f
+            val chartBottom = size.height - 40f
+            val chartWidth = chartRight - chartLeft
+            val chartHeight = chartBottom - chartTop
 
-        val totalBarWidth = chartRight - chartLeft
-        val barSpacing = 12f
-        val barWidth = (totalBarWidth - barSpacing * (barCount + 1)) / barCount
-
-        items.forEachIndexed { index, item ->
-            val barHeight = (item.revenue / maxRevenue * chartHeight).toFloat()
-            val x = chartLeft + barSpacing + index * (barWidth + barSpacing)
-
-            // Revenue bar
-            drawRoundRect(
-                color = Primary.copy(alpha = 0.8f),
-                topLeft = Offset(x, chartBottom - barHeight),
-                size = androidx.compose.ui.geometry.Size(barWidth * 0.5f, barHeight),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
-            )
-
-            // Profit bar (next to revenue)
-            val profitHeight = (item.profit / maxRevenue * chartHeight).toFloat().coerceAtLeast(0f)
-            drawRoundRect(
-                color = Success.copy(alpha = 0.8f),
-                topLeft = Offset(x + barWidth * 0.5f, chartBottom - profitHeight),
-                size = androidx.compose.ui.geometry.Size(barWidth * 0.5f, profitHeight),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
-            )
-
-            // Product name label
-            drawContext.canvas.nativeCanvas.apply {
-                val paint = android.graphics.Paint().apply {
-                    color = textColorInt
-                    textSize = with(density) { 9.sp.toPx() }
-                    textAlign = android.graphics.Paint.Align.CENTER
-                    isAntiAlias = true
-                }
-                val label = if (item.productName.length > 8) {
-                    item.productName.take(7) + "…"
-                } else {
-                    item.productName
-                }
-                drawText(
-                    label,
-                    x + barWidth / 2f,
-                    chartBottom + with(density) { 14.sp.toPx() },
-                    paint
+            // Grid lines
+            val gridLines = 4
+            for (i in 0..gridLines) {
+                val y = chartTop + chartHeight * i / gridLines
+                drawLine(
+                    color = DarkBorder.copy(alpha = 0.15f),
+                    start = Offset(chartLeft, y),
+                    end = Offset(chartRight, y),
+                    strokeWidth = 1f
                 )
+                val value = maxSales - maxSales * i / gridLines
+                drawContext.canvas.nativeCanvas.apply {
+                    val paint = android.graphics.Paint().apply {
+                        color = textColorInt
+                        textSize = with(density) { 9.sp.toPx() }
+                        textAlign = android.graphics.Paint.Align.RIGHT
+                        isAntiAlias = true
+                    }
+                    drawText(value.toString(), chartLeft - 6f, y + with(density) { 3.sp.toPx() }, paint)
+                }
             }
+
+            // Build line path
+            val step = chartWidth / (points.size - 1).coerceAtLeast(1)
+            val linePoints = points.mapIndexed { i, p ->
+                val x = chartLeft + step * i
+                val y = chartTop + chartHeight * (1f - p.salesCount.toFloat() / maxSales)
+                Offset(x, y)
+            }
+
+            // Fill area under curve
+            val fillPath = Path().apply {
+                moveTo(linePoints.first().x, chartBottom)
+                linePoints.forEach { lineTo(it.x, it.y) }
+                lineTo(linePoints.last().x, chartBottom)
+                close()
+            }
+            drawPath(fillPath, Primary.copy(alpha = 0.12f))
+
+            // Draw line
+            val linePath = Path().apply {
+                linePoints.forEachIndexed { i, pt ->
+                    if (i == 0) moveTo(pt.x, pt.y) else lineTo(pt.x, pt.y)
+                }
+            }
+            drawPath(linePath, Primary, style = Stroke(width = 3f, cap = StrokeCap.Round))
+
+            // Draw dots
+            linePoints.forEach { pt ->
+                drawCircle(Primary, radius = 5f, center = pt)
+                drawCircle(DarkCard, radius = 3f, center = pt)
+            }
+
+            // X-axis labels
+            val labelStep = if (points.size > 7) 2 else 1
+            points.forEachIndexed { i, p ->
+                if (i % labelStep == 0 || i == points.size - 1) {
+                    val x = chartLeft + step * i
+                    drawContext.canvas.nativeCanvas.apply {
+                        val paint = android.graphics.Paint().apply {
+                            color = textColorInt
+                            textSize = with(density) { 8.sp.toPx() }
+                            textAlign = android.graphics.Paint.Align.CENTER
+                            isAntiAlias = true
+                        }
+                        drawText(p.label, x, chartBottom + with(density) { 13.sp.toPx() }, paint)
+                    }
+                }
+            }
+
+            // Bottom axis line
+            drawLine(
+                color = DarkBorder.copy(alpha = 0.3f),
+                start = Offset(chartLeft, chartBottom),
+                end = Offset(chartRight, chartBottom),
+                strokeWidth = 1f
+            )
         }
 
-        // Bottom line
-        drawLine(
-            color = DarkBorder.copy(alpha = 0.3f),
-            start = Offset(chartLeft, chartBottom),
-            end = Offset(chartRight, chartBottom),
-            strokeWidth = 1f
-        )
-    }
-
-    // Legend
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .background(Primary.copy(alpha = 0.8f), RoundedCornerShape(2.dp))
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text("Выручка", style = MaterialTheme.typography.labelSmall, color = TextMuted)
-        Spacer(modifier = Modifier.width(16.dp))
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .background(Success.copy(alpha = 0.8f), RoundedCornerShape(2.dp))
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text("Прибыль", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+        // Legend
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .background(Primary.copy(alpha = 0.8f), RoundedCornerShape(2.dp))
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("Количество продаж", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+        }
     }
 }
 

@@ -24,6 +24,14 @@ import java.util.Locale
 @Composable
 fun ProductsScreen(viewModel: ProductsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
+            viewModel.clearSnackbar()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -44,7 +52,7 @@ fun ProductsScreen(viewModel: ProductsViewModel = hiltViewModel()) {
                     Checkbox(
                         checked = uiState.includeArchived,
                         onCheckedChange = { viewModel.toggleIncludeArchived() },
-                        colors = CheckboxDefaults.colors(checkedColor = Primary, uncheckedColor = TextMuted)
+                        colors = CheckboxDefaults.colors(checkedColor = SelectionOrange, uncheckedColor = TextMuted)
                     )
                     Text("Архивные", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
@@ -80,6 +88,11 @@ fun ProductsScreen(viewModel: ProductsViewModel = hiltViewModel()) {
         ) {
             Icon(Icons.Default.Add, contentDescription = "Добавить")
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp)
+        )
     }
 
     // Create/Edit dialog
