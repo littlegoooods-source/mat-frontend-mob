@@ -255,7 +255,8 @@ fun EmptyState(
 fun NotificationBanner(
     message: String?,
     onDismiss: () -> Unit,
-    isError: Boolean = true
+    isError: Boolean = true,
+    modifier: Modifier = Modifier
 ) {
     var visible by remember { mutableStateOf(false) }
     var currentMessage by remember { mutableStateOf("") }
@@ -277,7 +278,7 @@ fun NotificationBanner(
         visible = visible,
         enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
         exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .zIndex(100f)
     ) {

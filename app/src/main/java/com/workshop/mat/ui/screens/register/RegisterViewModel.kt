@@ -13,10 +13,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class RegisterUiState(
-    val name: String = "",
+    val firstName: String = "",
+    val lastName: String = "",
+    val username: String = "",
     val email: String = "",
     val password: String = "",
     val confirmPassword: String = "",
+    val joinCode: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
     val isSuccess: Boolean = false
@@ -31,15 +34,26 @@ class RegisterViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
 
-    fun updateName(name: String) { _uiState.value = _uiState.value.copy(name = name, error = null) }
-    fun updateEmail(email: String) { _uiState.value = _uiState.value.copy(email = email, error = null) }
-    fun updatePassword(password: String) { _uiState.value = _uiState.value.copy(password = password, error = null) }
-    fun updateConfirmPassword(password: String) { _uiState.value = _uiState.value.copy(confirmPassword = password, error = null) }
+    fun updateFirstName(v: String) { _uiState.value = _uiState.value.copy(firstName = v, error = null) }
+    fun updateLastName(v: String) { _uiState.value = _uiState.value.copy(lastName = v, error = null) }
+    fun updateUsername(v: String) { _uiState.value = _uiState.value.copy(username = v, error = null) }
+    fun updateEmail(v: String) { _uiState.value = _uiState.value.copy(email = v, error = null) }
+    fun updatePassword(v: String) { _uiState.value = _uiState.value.copy(password = v, error = null) }
+    fun updateConfirmPassword(v: String) { _uiState.value = _uiState.value.copy(confirmPassword = v, error = null) }
+    fun updateJoinCode(v: String) { _uiState.value = _uiState.value.copy(joinCode = v, error = null) }
 
     fun register() {
         val state = _uiState.value
-        if (state.name.isBlank() || state.email.isBlank() || state.password.isBlank()) {
-            _uiState.value = state.copy(error = "Заполните все поля")
+        if (state.username.isBlank()) {
+            _uiState.value = state.copy(error = "Укажите имя пользователя")
+            return
+        }
+        if (state.email.isBlank()) {
+            _uiState.value = state.copy(error = "Укажите email")
+            return
+        }
+        if (state.password.isBlank()) {
+            _uiState.value = state.copy(error = "Укажите пароль")
             return
         }
         if (state.password != state.confirmPassword) {
@@ -55,7 +69,14 @@ class RegisterViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
                 val response = apiService.register(
-                    RegisterRequest(state.name, state.email, state.password, state.confirmPassword)
+                    RegisterRequest(
+                        username = state.username,
+                        email = state.email,
+                        password = state.password,
+                        firstName = state.firstName.ifBlank { null },
+                        lastName = state.lastName.ifBlank { null },
+                        joinCode = state.joinCode.ifBlank { null }
+                    )
                 )
                 if (response.isSuccessful) {
                     val body = response.body()!!
@@ -67,8 +88,17 @@ class RegisterViewModel @Inject constructor(
                     val errorBody = response.errorBody()?.string()
                     val message = try {
                         val json = com.google.gson.JsonParser.parseString(errorBody).asJsonObject
-                        json.get("message")?.asString ?: json.get("title")?.asString ?: "Ошибка регистрации"
-                    } catch (e: Exception) {
+                        val errors = json.getAsJsonObject("errors")
+                        if (errors != null) {
+                            val msgs = mutableListOf<String>()
+                            errors.entrySet().forEach { (_, v) ->
+                                v.asJsonArray.forEach { msgs.add(it.asString) }
+                            }
+                            msgs.joinToString("\n")
+                        } else {
+                            json.get("message")?.asString ?: json.get("title")?.asString ?: "Ошибка регистрации"
+                        }
+                    } catch (_: Exception) {
                         "Ошибка регистрации"
                     }
                     _uiState.value = _uiState.value.copy(isLoading = false, error = message)

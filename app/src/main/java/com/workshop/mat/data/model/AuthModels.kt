@@ -6,10 +6,12 @@ data class LoginRequest(
 )
 
 data class RegisterRequest(
-    val name: String,
+    val username: String,
     val email: String,
     val password: String,
-    val confirmPassword: String
+    val firstName: String? = null,
+    val lastName: String? = null,
+    val joinCode: String? = null
 )
 
 data class RefreshTokenRequest(

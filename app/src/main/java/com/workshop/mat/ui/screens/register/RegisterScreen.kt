@@ -89,27 +89,46 @@ fun RegisterScreen(
                         }
                     }
 
-                    AppTextField(
-                        value = uiState.name,
-                        onValueChange = viewModel::updateName,
-                        label = "Имя",
-                        placeholder = "Введите имя",
-                        enabled = !uiState.isLoading
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        AppTextField(
+                            value = uiState.firstName,
+                            onValueChange = viewModel::updateFirstName,
+                            label = "Имя",
+                            placeholder = "Иван",
+                            enabled = !uiState.isLoading,
+                            modifier = Modifier.weight(1f)
+                        )
+                        AppTextField(
+                            value = uiState.lastName,
+                            onValueChange = viewModel::updateLastName,
+                            label = "Фамилия",
+                            placeholder = "Иванов",
+                            enabled = !uiState.isLoading,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
 
                     AppTextField(
                         value = uiState.email,
                         onValueChange = viewModel::updateEmail,
-                        label = "Email",
+                        label = "Email *",
                         placeholder = "Введите email",
                         keyboardType = KeyboardType.Email,
                         enabled = !uiState.isLoading
                     )
 
                     AppTextField(
+                        value = uiState.username,
+                        onValueChange = viewModel::updateUsername,
+                        label = "Имя пользователя *",
+                        placeholder = "Введите имя пользователя",
+                        enabled = !uiState.isLoading
+                    )
+
+                    AppTextField(
                         value = uiState.password,
                         onValueChange = viewModel::updatePassword,
-                        label = "Пароль",
+                        label = "Пароль *",
                         placeholder = "Минимум 6 символов",
                         isPassword = true,
                         enabled = !uiState.isLoading
@@ -118,9 +137,17 @@ fun RegisterScreen(
                     AppTextField(
                         value = uiState.confirmPassword,
                         onValueChange = viewModel::updateConfirmPassword,
-                        label = "Подтверждение пароля",
+                        label = "Подтверждение пароля *",
                         placeholder = "Повторите пароль",
                         isPassword = true,
+                        enabled = !uiState.isLoading
+                    )
+
+                    AppTextField(
+                        value = uiState.joinCode,
+                        onValueChange = viewModel::updateJoinCode,
+                        label = "Код организации",
+                        placeholder = "Опционально",
                         enabled = !uiState.isLoading
                     )
 

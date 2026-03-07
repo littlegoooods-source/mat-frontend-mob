@@ -93,7 +93,12 @@ fun ProductsScreen(viewModel: ProductsViewModel = hiltViewModel()) {
 
     // Copy dialog
     if (uiState.showCopyDialog) {
-        SmallDialog(title = "Копировать изделие", onDismiss = viewModel::closeCopyDialog) {
+        SmallDialog(
+            title = "Копировать изделие",
+            onDismiss = viewModel::closeCopyDialog,
+            notificationMessage = uiState.snackbarMessage,
+            onDismissNotification = viewModel::clearSnackbar
+        ) {
             AppTextField(value = uiState.copyName, onValueChange = viewModel::updateCopyName, label = "Название копии")
             Spacer(modifier = Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -170,7 +175,9 @@ private fun ProductItem(
 private fun ProductFormDialog(uiState: ProductsUiState, viewModel: ProductsViewModel) {
     FormDialog(
         title = if (uiState.editingProduct != null) "Редактировать изделие" else "Новое изделие",
-        onDismiss = viewModel::closeDialog
+        onDismiss = viewModel::closeDialog,
+        notificationMessage = uiState.snackbarMessage,
+        onDismissNotification = viewModel::clearSnackbar
     ) {
         AppTextField(value = uiState.formName, onValueChange = viewModel::updateFormName, label = "Название")
         Spacer(modifier = Modifier.height(12.dp))

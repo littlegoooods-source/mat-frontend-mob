@@ -169,7 +169,9 @@ private fun MaterialFormDialog(uiState: MaterialsUiState, viewModel: MaterialsVi
 
     FormDialog(
         title = if (uiState.editingMaterial != null) "Редактировать материал" else "Новый материал",
-        onDismiss = viewModel::closeDialog
+        onDismiss = viewModel::closeDialog,
+        notificationMessage = uiState.snackbarMessage,
+        onDismissNotification = viewModel::clearSnackbar
     ) {
         AppTextField(value = uiState.formName, onValueChange = viewModel::updateFormName, label = "Название")
         Spacer(modifier = Modifier.height(12.dp))

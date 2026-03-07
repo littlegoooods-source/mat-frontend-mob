@@ -75,7 +75,12 @@ fun ProductionsScreen(viewModel: ProductionsViewModel = hiltViewModel()) {
 
     // Create dialog
     if (uiState.showCreateDialog) {
-        FormDialog(title = "Новое производство", onDismiss = viewModel::closeCreateDialog) {
+        FormDialog(
+            title = "Новое производство",
+            onDismiss = viewModel::closeCreateDialog,
+            notificationMessage = uiState.snackbarMessage,
+            onDismissNotification = viewModel::clearSnackbar
+        ) {
             AppDropdown(
                 value = uiState.products.find { it.id.toString() == uiState.formProductId }?.name ?: "Выберите изделие",
                 onValueChange = { name ->

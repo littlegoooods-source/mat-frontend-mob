@@ -66,7 +66,12 @@ fun FinishedProductsScreen(viewModel: FinishedProductsViewModel = hiltViewModel(
     // Sell dialog
     uiState.showSellDialog?.let { item ->
         val cost = item.costPerUnit.takeIf { it > 0 } ?: item.materialCost
-        SmallDialog(title = "Продажа: ${item.productName}", onDismiss = viewModel::closeSellDialog) {
+        SmallDialog(
+            title = "Продажа: ${item.productName}",
+            onDismiss = viewModel::closeSellDialog,
+            notificationMessage = uiState.snackbarMessage,
+            onDismissNotification = viewModel::clearSnackbar
+        ) {
             Text("Себестоимость: ${fmtCur(cost)}", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
             Spacer(modifier = Modifier.height(12.dp))
             AppTextField(
@@ -92,7 +97,12 @@ fun FinishedProductsScreen(viewModel: FinishedProductsViewModel = hiltViewModel(
 
     // Write-off dialog
     uiState.showWriteOffDialog?.let { item ->
-        SmallDialog(title = "Списание: ${item.productName}", onDismiss = viewModel::closeWriteOffDialog) {
+        SmallDialog(
+            title = "Списание: ${item.productName}",
+            onDismiss = viewModel::closeWriteOffDialog,
+            notificationMessage = uiState.snackbarMessage,
+            onDismissNotification = viewModel::clearSnackbar
+        ) {
             AppTextField(
                 value = uiState.writeOffReason,
                 onValueChange = viewModel::updateWriteOffReason,

@@ -231,7 +231,12 @@ fun SettingsScreen(
 
     // Dialogs
     if (uiState.showCreateOrgDialog) {
-        SmallDialog(title = "Новая организация", onDismiss = viewModel::closeCreateOrgDialog) {
+        SmallDialog(
+            title = "Новая организация",
+            onDismiss = viewModel::closeCreateOrgDialog,
+            notificationMessage = uiState.snackbarMessage,
+            onDismissNotification = viewModel::clearSnackbar
+        ) {
             AppTextField(value = uiState.newOrgName, onValueChange = viewModel::updateNewOrgName, label = "Название")
             Spacer(modifier = Modifier.height(12.dp))
             AppTextField(value = uiState.newOrgDescription, onValueChange = viewModel::updateNewOrgDescription, label = "Описание", singleLine = false)
@@ -244,7 +249,12 @@ fun SettingsScreen(
     }
 
     if (uiState.showJoinDialog) {
-        SmallDialog(title = "Присоединиться", onDismiss = viewModel::closeJoinDialog) {
+        SmallDialog(
+            title = "Присоединиться",
+            onDismiss = viewModel::closeJoinDialog,
+            notificationMessage = uiState.snackbarMessage,
+            onDismissNotification = viewModel::clearSnackbar
+        ) {
             AppTextField(value = uiState.joinCode, onValueChange = viewModel::updateJoinCode, label = "Код организации")
             Spacer(modifier = Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -255,7 +265,12 @@ fun SettingsScreen(
     }
 
     if (uiState.showInviteDialog) {
-        SmallDialog(title = "Пригласить участника", onDismiss = viewModel::closeInviteDialog) {
+        SmallDialog(
+            title = "Пригласить участника",
+            onDismiss = viewModel::closeInviteDialog,
+            notificationMessage = uiState.snackbarMessage,
+            onDismissNotification = viewModel::clearSnackbar
+        ) {
             AppTextField(value = uiState.inviteEmail, onValueChange = viewModel::updateInviteEmail, label = "Email", keyboardType = KeyboardType.Email)
             Spacer(modifier = Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

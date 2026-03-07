@@ -136,7 +136,9 @@ private fun ReceiptFormDialog(uiState: ReceiptsUiState, viewModel: ReceiptsViewM
 
     FormDialog(
         title = if (uiState.editingReceipt != null) "Редактировать приход" else "Новый приход",
-        onDismiss = viewModel::closeDialog
+        onDismiss = viewModel::closeDialog,
+        notificationMessage = uiState.snackbarMessage,
+        onDismissNotification = viewModel::clearSnackbar
     ) {
         // Material picker
         AppDropdown(
