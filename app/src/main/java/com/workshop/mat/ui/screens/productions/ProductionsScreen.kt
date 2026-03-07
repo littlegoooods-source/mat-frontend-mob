@@ -27,16 +27,11 @@ fun ProductionsScreen(viewModel: ProductionsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val statuses = listOf("", "Completed", "Cancelled")
     val statusLabels = listOf("Все", "Завершённые", "Отменённые")
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(uiState.snackbarMessage) {
-        uiState.snackbarMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearSnackbar()
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
+        NotificationBanner(
+            message = uiState.snackbarMessage,
+            onDismiss = viewModel::clearSnackbar
+        )
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             AppDropdown(
                 value = statusLabels[statuses.indexOf(uiState.statusFilter).coerceAtLeast(0)],
@@ -76,10 +71,6 @@ fun ProductionsScreen(viewModel: ProductionsViewModel = hiltViewModel()) {
             Icon(Icons.Default.Add, contentDescription = "Произвести")
         }
 
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp)
-        )
     }
 
     // Create dialog

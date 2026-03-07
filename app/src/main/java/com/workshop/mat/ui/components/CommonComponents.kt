@@ -1,12 +1,16 @@
 package com.workshop.mat.ui.components
 
+import androidx.compose.animation.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -14,12 +18,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.workshop.mat.ui.theme.*
+import kotlinx.coroutines.delay
 
 @Composable
 fun LoadingIndicator(modifier: Modifier = Modifier) {
@@ -240,5 +248,80 @@ fun EmptyState(
             style = MaterialTheme.typography.bodyLarge,
             color = TextMuted
         )
+    }
+}
+
+@Composable
+fun NotificationBanner(
+    message: String?,
+    onDismiss: () -> Unit,
+    isError: Boolean = true
+) {
+    var visible by remember { mutableStateOf(false) }
+    var currentMessage by remember { mutableStateOf("") }
+
+    LaunchedEffect(message) {
+        if (message != null) {
+            currentMessage = message
+            visible = true
+            delay(4000)
+            visible = false
+            delay(300)
+            onDismiss()
+        } else {
+            visible = false
+        }
+    }
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .zIndex(100f)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = if (isError) Color(0xFFDC2626) else Color(0xFF16A34A),
+            shadowElevation = 8.dp,
+            tonalElevation = 4.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.ErrorOutline,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = currentMessage,
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Закрыть",
+                    tint = Color.White.copy(alpha = 0.8f),
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clickable {
+                            visible = false
+                            onDismiss()
+                        }
+                )
+            }
+        }
     }
 }

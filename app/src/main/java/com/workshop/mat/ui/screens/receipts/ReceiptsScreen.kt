@@ -23,16 +23,11 @@ import java.util.Locale
 @Composable
 fun ReceiptsScreen(viewModel: ReceiptsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(uiState.snackbarMessage) {
-        uiState.snackbarMessage?.let {
-            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
-            viewModel.clearSnackbar()
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
+        NotificationBanner(
+            message = uiState.snackbarMessage,
+            onDismiss = viewModel::clearSnackbar
+        )
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             if (uiState.materials.isNotEmpty()) {
                 val materialNames = listOf("Все материалы") + uiState.materials.map { "${it.name}${if (it.color != null) " (${it.color})" else ""}" }
@@ -77,10 +72,6 @@ fun ReceiptsScreen(viewModel: ReceiptsViewModel = hiltViewModel()) {
             Icon(Icons.Default.Add, contentDescription = "Добавить")
         }
 
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp)
-        )
     }
 
     if (uiState.showDialog) {
@@ -110,18 +101,22 @@ private fun ReceiptItem(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val effectivePrice = if (receipt.unitPrice > 0) receipt.unitPrice else receipt.pricePerUnit
+            val effectiveTotal = if (receipt.totalPrice > 0) receipt.totalPrice else effectivePrice * receipt.quantity
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(receipt.materialName, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
                 Text(
-                    "${receipt.quantity} ${receipt.materialUnit} × ${formatCurrency(receipt.pricePerUnit)}",
+                    "${receipt.quantity} ${receipt.materialUnit} × ${formatCurrency(effectivePrice)}",
                     style = MaterialTheme.typography.bodySmall, color = TextSecondary
                 )
-                if (!receipt.supplier.isNullOrBlank()) {
-                    Text("Поставщик: ${receipt.supplier}", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                val source = receipt.purchaseSource?.takeIf { it.isNotBlank() } ?: receipt.supplier?.takeIf { it.isNotBlank() }
+                if (source != null) {
+                    Text("Место покупки: $source", style = MaterialTheme.typography.bodySmall, color = TextMuted)
                 }
             }
             Text(
-                formatCurrency(receipt.totalPrice),
+                formatCurrency(effectiveTotal),
                 style = MaterialTheme.typography.titleMedium,
                 color = Success
             )

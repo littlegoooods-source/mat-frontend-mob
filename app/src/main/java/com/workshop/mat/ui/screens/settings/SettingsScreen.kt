@@ -18,10 +18,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.runtime.LaunchedEffect
 import com.workshop.mat.ui.components.*
 import com.workshop.mat.ui.theme.*
 
@@ -31,17 +27,13 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
 
-    LaunchedEffect(uiState.snackbarMessage) {
-        uiState.snackbarMessage?.let {
-            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
-            viewModel.clearSnackbar()
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
+        NotificationBanner(
+            message = uiState.snackbarMessage,
+            onDismiss = viewModel::clearSnackbar
+        )
         Column(
         modifier = Modifier
             .fillMaxSize()
@@ -235,16 +227,6 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(32.dp))
     }
 
-    SnackbarHost(
-        hostState = snackbarHostState,
-        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp)
-    ) { data ->
-        Snackbar(
-            snackbarData = data,
-            containerColor = Error,
-            contentColor = TextPrimary
-        )
-    }
     }
 
     // Dialogs

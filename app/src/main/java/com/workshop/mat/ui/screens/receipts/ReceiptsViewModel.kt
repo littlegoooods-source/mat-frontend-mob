@@ -87,12 +87,14 @@ class ReceiptsViewModel @Inject constructor(
     }
 
     fun openEditDialog(receipt: MaterialReceiptListItemDto) {
+        val effectivePrice = if (receipt.unitPrice > 0) receipt.unitPrice else receipt.pricePerUnit
+        val effectiveTotal = if (receipt.totalPrice > 0) receipt.totalPrice else effectivePrice * receipt.quantity
         _uiState.value = _uiState.value.copy(
             showDialog = true, editingReceipt = receipt,
             formMaterialId = receipt.materialId.toString(),
             formQuantity = receipt.quantity.toString(),
-            formPricePerUnit = receipt.pricePerUnit.toString(),
-            formTotalPrice = receipt.totalPrice.toString(),
+            formPricePerUnit = effectivePrice.toString(),
+            formTotalPrice = effectiveTotal.toString(),
             formReceiptDate = receipt.receiptDate,
             formBatchNumber = receipt.batchNumber ?: "",
             formSupplier = receipt.purchaseSource ?: receipt.supplier ?: "",
@@ -145,7 +147,7 @@ class ReceiptsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = s.copy(isSaving = true)
             try {
-                if (s.editingReceipt != null) {
+                val response = if (s.editingReceipt != null) {
                     apiService.updateReceipt(s.editingReceipt.id, MaterialReceiptUpdateDto(
                         materialId = materialId, quantity = quantity, pricePerUnit = price,
                         unitPrice = price,
@@ -170,8 +172,16 @@ class ReceiptsViewModel @Inject constructor(
                         receiptDate = s.formReceiptDate.ifBlank { null }
                     ))
                 }
-                _uiState.value = _uiState.value.copy(isSaving = false, showDialog = false)
-                loadReceipts()
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(isSaving = false, showDialog = false)
+                    loadReceipts()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val message = try {
+                        com.google.gson.JsonParser.parseString(errorBody).asJsonObject.get("message")?.asString
+                    } catch (_: Exception) { null }
+                    _uiState.value = _uiState.value.copy(isSaving = false, snackbarMessage = message ?: "Ошибка сохранения")
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isSaving = false, snackbarMessage = e.localizedMessage ?: "Ошибка сохранения")
             }
@@ -187,10 +197,26 @@ class ReceiptsViewModel @Inject constructor(
         val receipt = _uiState.value.showDeleteConfirm ?: return
         viewModelScope.launch {
             try {
-                apiService.deleteReceipt(receipt.id)
-                _uiState.value = _uiState.value.copy(showDeleteConfirm = null)
-                loadReceipts()
-            } catch (_: Exception) {}
+                val response = apiService.deleteReceipt(receipt.id)
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(showDeleteConfirm = null)
+                    loadReceipts()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val message = try {
+                        com.google.gson.JsonParser.parseString(errorBody).asJsonObject.get("message")?.asString
+                    } catch (_: Exception) { null }
+                    _uiState.value = _uiState.value.copy(
+                        showDeleteConfirm = null,
+                        snackbarMessage = message ?: "Ошибка удаления прихода"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    showDeleteConfirm = null,
+                    snackbarMessage = e.localizedMessage ?: "Ошибка удаления"
+                )
+            }
         }
     }
 }

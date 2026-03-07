@@ -133,8 +133,12 @@ class ProductsViewModel @Inject constructor(
                         formMarkupPercent = p.markupPercent.toString(),
                         formRecipeItems = p.recipeItems.map { RecipeItemForm(it.materialId.toString(), it.quantity.toString()) }
                     )
+                } else {
+                    _uiState.value = _uiState.value.copy(snackbarMessage = "Не удалось загрузить изделие")
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(snackbarMessage = e.localizedMessage ?: "Ошибка загрузки изделия")
+            }
         }
     }
 
@@ -212,7 +216,7 @@ class ProductsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = s.copy(isSaving = true)
             try {
-                if (s.editingProduct != null) {
+                val response = if (s.editingProduct != null) {
                     apiService.updateProduct(s.editingProduct.id, ProductUpdateDto(
                         name = s.formName, category = s.formCategory.ifBlank { null },
                         description = s.formDescription.ifBlank { null },
@@ -237,9 +241,17 @@ class ProductsViewModel @Inject constructor(
                         recipeItems = recipeItems
                     ))
                 }
-                _uiState.value = _uiState.value.copy(isSaving = false, showDialog = false)
-                loadProducts()
-                loadCategories()
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(isSaving = false, showDialog = false)
+                    loadProducts()
+                    loadCategories()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val message = try {
+                        com.google.gson.JsonParser.parseString(errorBody).asJsonObject.get("message")?.asString
+                    } catch (_: Exception) { null }
+                    _uiState.value = _uiState.value.copy(isSaving = false, snackbarMessage = message ?: "Ошибка сохранения")
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isSaving = false, snackbarMessage = e.localizedMessage ?: "Ошибка сохранения")
             }
@@ -249,10 +261,20 @@ class ProductsViewModel @Inject constructor(
     fun archiveProduct(product: ProductListItemDto) {
         viewModelScope.launch {
             try {
-                if (product.isArchived) apiService.unarchiveProduct(product.id)
+                val response = if (product.isArchived) apiService.unarchiveProduct(product.id)
                 else apiService.archiveProduct(product.id)
-                loadProducts()
-            } catch (_: Exception) {}
+                if (response.isSuccessful) {
+                    loadProducts()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val message = try {
+                        com.google.gson.JsonParser.parseString(errorBody).asJsonObject.get("message")?.asString
+                    } catch (_: Exception) { null }
+                    _uiState.value = _uiState.value.copy(snackbarMessage = message ?: "Ошибка архивирования")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(snackbarMessage = e.localizedMessage ?: "Ошибка архивирования")
+            }
         }
     }
 
@@ -268,10 +290,20 @@ class ProductsViewModel @Inject constructor(
         if (s.copyName.isBlank()) return
         viewModelScope.launch {
             try {
-                apiService.copyProduct(product.id, ProductCopyDto(s.copyName))
-                _uiState.value = _uiState.value.copy(showCopyDialog = false)
-                loadProducts()
-            } catch (_: Exception) {}
+                val response = apiService.copyProduct(product.id, ProductCopyDto(s.copyName))
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(showCopyDialog = false)
+                    loadProducts()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val message = try {
+                        com.google.gson.JsonParser.parseString(errorBody).asJsonObject.get("message")?.asString
+                    } catch (_: Exception) { null }
+                    _uiState.value = _uiState.value.copy(snackbarMessage = message ?: "Ошибка копирования")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(snackbarMessage = e.localizedMessage ?: "Ошибка копирования")
+            }
         }
     }
 
@@ -282,11 +314,25 @@ class ProductsViewModel @Inject constructor(
         val product = _uiState.value.showDeleteConfirm ?: return
         viewModelScope.launch {
             try {
-                apiService.deleteProduct(product.id)
-                _uiState.value = _uiState.value.copy(showDeleteConfirm = null)
-                loadProducts()
+                val response = apiService.deleteProduct(product.id)
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(showDeleteConfirm = null)
+                    loadProducts()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val message = try {
+                        com.google.gson.JsonParser.parseString(errorBody).asJsonObject.get("message")?.asString
+                    } catch (_: Exception) { null }
+                    _uiState.value = _uiState.value.copy(
+                        showDeleteConfirm = null,
+                        snackbarMessage = message ?: "Невозможно удалить изделие: оно используется"
+                    )
+                }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(showDeleteConfirm = null, snackbarMessage = e.localizedMessage ?: "Ошибка удаления")
+                _uiState.value = _uiState.value.copy(
+                    showDeleteConfirm = null,
+                    snackbarMessage = e.localizedMessage ?: "Ошибка удаления"
+                )
             }
         }
     }

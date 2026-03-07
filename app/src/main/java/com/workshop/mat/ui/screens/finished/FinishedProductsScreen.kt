@@ -17,28 +17,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.workshop.mat.data.model.FinishedProductListItemDto
 import com.workshop.mat.ui.components.*
 import com.workshop.mat.ui.theme.*
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.runtime.LaunchedEffect
 import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
 fun FinishedProductsScreen(viewModel: FinishedProductsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
     val statuses = listOf("", "InStock", "Sold", "WrittenOff")
     val statusLabels = listOf("Все", "На складе", "Продано", "Списано")
 
-    LaunchedEffect(uiState.snackbarMessage) {
-        uiState.snackbarMessage?.let {
-            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
-            viewModel.clearSnackbar()
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
+        NotificationBanner(
+            message = uiState.snackbarMessage,
+            onDismiss = viewModel::clearSnackbar
+        )
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
 
             AppDropdown(
@@ -69,16 +61,6 @@ fun FinishedProductsScreen(viewModel: FinishedProductsViewModel = hiltViewModel(
             }
         }
 
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp)
-        ) { data ->
-            Snackbar(
-                snackbarData = data,
-                containerColor = Error,
-                contentColor = TextPrimary
-            )
-        }
     }
 
     // Sell dialog

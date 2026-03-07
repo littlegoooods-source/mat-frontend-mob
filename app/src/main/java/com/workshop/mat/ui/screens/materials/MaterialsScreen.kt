@@ -22,17 +22,13 @@ import java.util.Locale
 @Composable
 fun MaterialsScreen(viewModel: MaterialsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(uiState.snackbarMessage) {
-        uiState.snackbarMessage?.let {
-            snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Short)
-            viewModel.clearSnackbar()
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        NotificationBanner(
+            message = uiState.snackbarMessage,
+            onDismiss = viewModel::clearSnackbar
+        )
+
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp).padding(top = 4.dp)) {
             SearchBar(value = uiState.search, onValueChange = viewModel::updateSearch)
             Spacer(modifier = Modifier.height(8.dp))
             Row(
@@ -77,17 +73,6 @@ fun MaterialsScreen(viewModel: MaterialsViewModel = hiltViewModel()) {
                     }
                 }
             }
-        }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 72.dp)
-        ) { data ->
-            Snackbar(
-                snackbarData = data,
-                containerColor = Error,
-                contentColor = TextPrimary
-            )
         }
 
         FloatingActionButton(

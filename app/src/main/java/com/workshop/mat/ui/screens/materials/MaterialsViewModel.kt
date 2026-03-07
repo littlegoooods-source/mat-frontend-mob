@@ -135,7 +135,7 @@ class MaterialsViewModel @Inject constructor(
             _uiState.value = s.copy(isSaving = true)
             try {
                 val minStock = s.formMinimumStock.toDoubleOrNull()
-                if (s.editingMaterial != null) {
+                val response = if (s.editingMaterial != null) {
                     apiService.updateMaterial(s.editingMaterial.id, MaterialUpdateDto(
                         name = s.formName, unit = s.formUnit,
                         color = s.formColor.ifBlank { null },
@@ -152,9 +152,20 @@ class MaterialsViewModel @Inject constructor(
                         minimumStock = minStock
                     ))
                 }
-                _uiState.value = _uiState.value.copy(isSaving = false, showDialog = false)
-                loadMaterials()
-                loadCategories()
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(isSaving = false, showDialog = false)
+                    loadMaterials()
+                    loadCategories()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val message = try {
+                        com.google.gson.JsonParser.parseString(errorBody).asJsonObject.get("message")?.asString
+                    } catch (_: Exception) { null }
+                    _uiState.value = _uiState.value.copy(
+                        isSaving = false,
+                        snackbarMessage = message ?: "Ошибка сохранения"
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
