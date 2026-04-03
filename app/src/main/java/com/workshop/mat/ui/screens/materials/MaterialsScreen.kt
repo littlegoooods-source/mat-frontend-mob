@@ -110,57 +110,40 @@ private fun MaterialItem(
     onArchive: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = DarkCard
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(material.name, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-                    if (!material.color.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        StatusBadge(text = material.color, color = TextSecondary, bgColor = DarkSurfaceVariant)
-                    }
-                }
-                Text(
-                    formatCurrency(material.averagePrice),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
-                )
-                Text(
-                    "${material.currentStock} ${material.unit} | ${material.category ?: "-"}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextMuted
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (material.isBelowMinimum) {
-                        StatusBadge(text = "Мало", color = Warning, bgColor = WarningBg)
-                    }
-                    if (material.isArchived) {
-                        StatusBadge(text = "Архив", color = TextMuted, bgColor = DarkSurfaceVariant)
-                    }
-                }
+    val fields = mutableListOf(
+        CardField("НАЗВАНИЕ", material.name),
+        CardField("КАТЕГОРИЯ", material.category ?: "—"),
+    )
+    if (!material.color.isNullOrBlank()) {
+        fields.add(CardField("ЦВЕТ", material.color))
+    }
+    fields.add(CardField("ОСТАТОК", "${material.currentStock} ${material.unit}"))
+    fields.add(CardField("СРЕДНЯЯ СТОИМОСТЬ", formatCurrency(material.averagePrice), valueColor = TextSecondary))
+
+    if (material.isBelowMinimum || material.isArchived) {
+        val badges = mutableListOf<String>()
+        if (material.isBelowMinimum) badges.add("Мало")
+        if (material.isArchived) badges.add("Архив")
+        fields.add(CardField("СТАТУС", badges.joinToString(", "), valueColor = if (material.isBelowMinimum) Warning else TextMuted))
+    }
+
+    WebStyleCard(
+        fields = fields,
+        actions = {
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, contentDescription = "Редактировать", tint = TextMuted, modifier = Modifier.size(20.dp))
             }
-            Row {
-                IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Редактировать", tint = TextMuted, modifier = Modifier.size(20.dp))
-                }
-                IconButton(onClick = onArchive) {
-                    Icon(
-                        if (material.isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
-                        contentDescription = "Архив", tint = TextMuted, modifier = Modifier.size(20.dp)
-                    )
-                }
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Удалить", tint = Error, modifier = Modifier.size(20.dp))
-                }
+            IconButton(onClick = onArchive) {
+                Icon(
+                    if (material.isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
+                    contentDescription = "Архив", tint = TextMuted, modifier = Modifier.size(20.dp)
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "Удалить", tint = Error, modifier = Modifier.size(20.dp))
             }
         }
-    }
+    )
 }
 
 @Composable

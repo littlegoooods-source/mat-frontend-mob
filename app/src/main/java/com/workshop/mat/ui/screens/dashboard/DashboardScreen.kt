@@ -22,13 +22,16 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.workshop.mat.ui.components.*
 import com.workshop.mat.ui.navigation.Routes
 import com.workshop.mat.ui.theme.*
@@ -59,6 +62,14 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.loadDashboard()
+            viewModel.loadSalesData()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -115,7 +126,7 @@ fun DashboardScreen(
                         DashboardStatCard(
                             title = "Материалы\nна складе",
                             value = formatCurrency(matSummary?.totalValue ?: 0.0),
-                            subtitle = "${matSummary?.activeMaterials ?: 0} позиций",
+                            subtitle = "${matSummary?.activeMaterials ?: 0} поз.",
                             icon = Icons.Default.Inventory2,
                             iconColor = Primary,
                             modifier = Modifier.weight(1f)

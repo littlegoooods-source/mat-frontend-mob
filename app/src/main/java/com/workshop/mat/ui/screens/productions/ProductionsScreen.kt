@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -218,71 +217,49 @@ private fun ProductionItem(
     )
     val totalCost = if (production.totalCost > 0) production.totalCost else production.totalMaterialCost
 
-    Surface(shape = RoundedCornerShape(12.dp), color = DarkCard) {
-        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        production.productName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = TextPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (production.batchNumber.isNotEmpty()) {
-                        Text(
-                            "Партия: ${production.batchNumber}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextMuted
-                        )
-                    }
-                }
-                StatusBadge(text = statusText, color = statusColor, bgColor = statusColor.copy(alpha = 0.15f))
-            }
+    val fields = mutableListOf(
+        CardField("ИЗДЕЛИЕ", production.productName),
+        CardField("ДАТА", displayDate),
+    )
+    if (production.batchNumber.isNotEmpty()) {
+        fields.add(CardField("ПАРТИЯ", production.batchNumber))
+    }
+    fields.add(CardField("КОЛ-ВО", "${production.quantity} шт"))
+    fields.add(CardField("СТАТУС", statusText, valueColor = statusColor))
+    if (production.costPerUnit > 0) {
+        fields.add(CardField("СЕБЕСТОИМОСТЬ", fmtCur(production.costPerUnit)))
+    }
+    if (totalCost > 0) {
+        fields.add(CardField("ОБЩАЯ СУММА", fmtCur(totalCost)))
+    }
+    fields.add(CardField("НА СКЛАДЕ", "${production.inStockCount} шт"))
 
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                InfoColumn("Дата", displayDate)
-                InfoColumn("Кол-во", "${production.quantity} шт")
-                InfoColumn("Себест.", if (production.costPerUnit > 0) fmtCur(production.costPerUnit) else "—")
-                InfoColumn("Сумма", if (totalCost > 0) fmtCur(totalCost) else "—")
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "На складе: ${production.inStockCount} шт",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
-                )
-                Row {
-                    if (production.status.equals("Completed", ignoreCase = true) && !isCancelled) {
-                        IconButton(onClick = onCancel, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.Cancel, null, tint = Warning, modifier = Modifier.size(18.dp))
-                        }
-                    }
-                    IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Delete, null, tint = Error, modifier = Modifier.size(18.dp))
-                    }
+    WebStyleCard(
+        fields = fields,
+        actions = {
+            if (production.status.equals("Completed", ignoreCase = true) && !isCancelled) {
+                OutlinedButton(
+                    onClick = onCancel,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Warning)
+                ) {
+                    Icon(Icons.Default.Cancel, null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Отменить", style = MaterialTheme.typography.labelMedium)
                 }
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            OutlinedButton(
+                onClick = onDelete,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Error)
+            ) {
+                Icon(Icons.Default.Delete, null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Удалить", style = MaterialTheme.typography.labelMedium)
             }
         }
-    }
-}
-
-@Composable
-private fun InfoColumn(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = TextMuted)
-        Text(value, style = MaterialTheme.typography.bodySmall, color = TextPrimary)
-    }
+    )
 }
 
 private fun fmtCur(value: Double): String {

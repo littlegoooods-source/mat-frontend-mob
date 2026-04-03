@@ -37,7 +37,12 @@ data class SettingsUiState(
     val showDeleteOrgConfirm: Boolean = false,
     val showRemoveMemberConfirm: OrganizationMemberDto? = null,
     val isSaving: Boolean = false,
-    val snackbarMessage: String? = null
+    val snackbarMessage: String? = null,
+    // Rename org
+    val showRenameOrgDialog: Boolean = false,
+    val renameOrgName: String = "",
+    // Sent invitations
+    val sentInvitations: List<InvitationDto> = emptyList()
 )
 
 @HiltViewModel
@@ -79,6 +84,14 @@ class SettingsViewModel @Inject constructor(
                 val invResponse = apiService.getMyInvitations()
                 if (invResponse.isSuccessful) {
                     _uiState.value = _uiState.value.copy(invitations = invResponse.body() ?: emptyList())
+                }
+
+                // Load sent invitations for current org
+                if (user?.currentOrganizationId != null) {
+                    val sentInvResponse = apiService.getOrgInvitations(user.currentOrganizationId)
+                    if (sentInvResponse.isSuccessful) {
+                        _uiState.value = _uiState.value.copy(sentInvitations = sentInvResponse.body() ?: emptyList())
+                    }
                 }
 
                 _uiState.value = _uiState.value.copy(isLoading = false)
@@ -270,6 +283,105 @@ class SettingsViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(showDeleteOrgConfirm = false)
                 showSnackbar(e.localizedMessage ?: "Ошибка удаления организации")
+            }
+        }
+    }
+
+    // Rename org
+    fun openRenameOrgDialog() {
+        _uiState.value = _uiState.value.copy(
+            showRenameOrgDialog = true,
+            renameOrgName = _uiState.value.currentOrgDetail?.name ?: ""
+        )
+    }
+    fun closeRenameOrgDialog() { _uiState.value = _uiState.value.copy(showRenameOrgDialog = false) }
+    fun updateRenameOrgName(v: String) { _uiState.value = _uiState.value.copy(renameOrgName = v) }
+
+    fun renameOrganization() {
+        val orgId = _uiState.value.user?.currentOrganizationId ?: return
+        val newName = _uiState.value.renameOrgName
+        if (newName.isBlank()) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true)
+            try {
+                val response = apiService.updateOrganization(orgId, UpdateOrganizationRequest(newName))
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(isSaving = false, showRenameOrgDialog = false)
+                    val orgsResponse = apiService.getAuthOrganizations()
+                    if (orgsResponse.isSuccessful) {
+                        tokenManager.organizations = orgsResponse.body() ?: emptyList()
+                    }
+                    loadData()
+                    showSnackbar("Организация переименована")
+                } else {
+                    _uiState.value = _uiState.value.copy(isSaving = false)
+                    showSnackbar("Ошибка переименования")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isSaving = false)
+                showSnackbar(e.localizedMessage ?: "Ошибка переименования")
+            }
+        }
+    }
+
+    // Regenerate code
+    fun regenerateCode() {
+        val orgId = _uiState.value.user?.currentOrganizationId ?: return
+        viewModelScope.launch {
+            try {
+                val response = apiService.regenerateCode(orgId)
+                if (response.isSuccessful) {
+                    loadData()
+                    showSnackbar("Код обновлён")
+                } else {
+                    showSnackbar("Ошибка обновления кода")
+                }
+            } catch (e: Exception) {
+                showSnackbar(e.localizedMessage ?: "Ошибка обновления кода")
+            }
+        }
+    }
+
+    // Transfer ownership
+    fun openTransferDialog() { _uiState.value = _uiState.value.copy(showTransferDialog = true, transferMemberId = "") }
+    fun closeTransferDialog() { _uiState.value = _uiState.value.copy(showTransferDialog = false) }
+    fun updateTransferMemberId(v: String) { _uiState.value = _uiState.value.copy(transferMemberId = v) }
+
+    fun transferOwnership() {
+        val orgId = _uiState.value.user?.currentOrganizationId ?: return
+        val newOwnerId = _uiState.value.transferMemberId.toIntOrNull() ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true)
+            try {
+                val response = apiService.transferOwnership(orgId, TransferOwnershipRequest(newOwnerId))
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(isSaving = false, showTransferDialog = false)
+                    loadData()
+                    showSnackbar("Владение передано")
+                } else {
+                    _uiState.value = _uiState.value.copy(isSaving = false)
+                    showSnackbar("Ошибка передачи владения")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isSaving = false)
+                showSnackbar(e.localizedMessage ?: "Ошибка передачи владения")
+            }
+        }
+    }
+
+    // Cancel sent invitation
+    fun cancelSentInvitation(invitationId: Int) {
+        viewModelScope.launch {
+            try {
+                val response = apiService.cancelInvitation(invitationId)
+                if (response.isSuccessful) {
+                    loadData()
+                    showSnackbar("Приглашение отменено")
+                } else {
+                    showSnackbar("Ошибка отмены приглашения")
+                }
+            } catch (e: Exception) {
+                showSnackbar(e.localizedMessage ?: "Ошибка отмены приглашения")
             }
         }
     }

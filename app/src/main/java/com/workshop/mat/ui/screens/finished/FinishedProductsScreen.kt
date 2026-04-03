@@ -85,7 +85,7 @@ fun FinishedProductsScreen(viewModel: FinishedProductsViewModel = hiltViewModel(
                 Button(
                     onClick = viewModel::sellProduct,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Success),
+                    colors = ButtonDefaults.buttonColors(containerColor = SuccessMuted),
                     enabled = !uiState.isSaving
                 ) { Text("Продать") }
                 OutlinedButton(onClick = viewModel::closeSellDialog, modifier = Modifier.weight(1f)) {
@@ -114,7 +114,7 @@ fun FinishedProductsScreen(viewModel: FinishedProductsViewModel = hiltViewModel(
                 Button(
                     onClick = viewModel::writeOffProduct,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Warning),
+                    colors = ButtonDefaults.buttonColors(containerColor = WarningMuted),
                     enabled = !uiState.isSaving
                 ) { Text("Списать") }
                 OutlinedButton(onClick = viewModel::closeWriteOffDialog, modifier = Modifier.weight(1f)) {
@@ -168,70 +168,63 @@ private fun FinishedProductItem(
         "writtenoff" -> "Списано"
         else -> item.status
     }
-
     val cost = if (item.costPerUnit > 0) item.costPerUnit else item.materialCost
 
-    Surface(shape = RoundedCornerShape(12.dp), color = DarkCard) {
-        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(item.productName, style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatusBadge(text = statusText, color = statusColor, bgColor = statusColor.copy(alpha = 0.15f))
-                        Text("Себест: ${fmtCur(cost)}", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-                    }
-                    if (item.batchNumber.isNotBlank()) {
-                        Text("Партия: ${item.batchNumber}", style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                    }
-                    if (item.productionDate.isNotBlank()) {
-                        Text("Дата произв: ${item.productionDate.take(10)}", style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                    }
-                    if (item.sellPrice != null) {
-                        Text("Продано за: ${fmtCur(item.sellPrice)}", style = MaterialTheme.typography.bodySmall, color = Success)
-                    }
-                    if (!item.client.isNullOrBlank()) {
-                        Text("Клиент: ${item.client}", style = MaterialTheme.typography.bodySmall, color = Info)
-                    }
-                    if (!item.saleDate.isNullOrBlank()) {
-                        Text("Дата продажи: ${item.saleDate.take(10)}", style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                    }
-                }
-            }
-            // Action buttons
+    val fields = mutableListOf(
+        CardField("ИЗДЕЛИЕ", item.productName),
+    )
+    if (item.batchNumber.isNotBlank()) {
+        fields.add(CardField("ПАРТИЯ", item.batchNumber))
+    }
+    if (item.productionDate.isNotBlank()) {
+        fields.add(CardField("ДАТА ПРОИЗВОДСТВА", item.productionDate.take(10)))
+    }
+    fields.add(CardField("СТАТУС", statusText, valueColor = statusColor))
+    fields.add(CardField("СЕБЕСТОИМОСТЬ", fmtCur(cost)))
+    if (item.recommendedPrice != null) {
+        fields.add(CardField("РЕК. ЦЕНА", fmtCur(item.recommendedPrice)))
+    }
+    if (item.sellPrice != null) {
+        fields.add(CardField("ЦЕНА ПРОДАЖИ", fmtCur(item.sellPrice), valueColor = Success))
+    }
+    if (!item.client.isNullOrBlank()) {
+        fields.add(CardField("КЛИЕНТ", item.client, valueColor = Info))
+    }
+    if (!item.saleDate.isNullOrBlank()) {
+        fields.add(CardField("ДАТА ПРОДАЖИ", item.saleDate.take(10)))
+    }
+
+    WebStyleCard(
+        fields = fields,
+        actions = {
             if (item.status.lowercase() == "instock") {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = onSell,
-                        colors = ButtonDefaults.buttonColors(containerColor = Success),
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(8.dp)
-                    ) { Text("Продать", style = MaterialTheme.typography.labelMedium) }
-                    Button(
-                        onClick = onWriteOff,
-                        colors = ButtonDefaults.buttonColors(containerColor = Warning),
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(8.dp)
-                    ) { Text("Списать", style = MaterialTheme.typography.labelMedium) }
-                    IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, null, tint = Error, modifier = Modifier.size(20.dp))
-                    }
+                Button(
+                    onClick = onSell,
+                    colors = ButtonDefaults.buttonColors(containerColor = SuccessMuted),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                ) { Text("Продать", style = MaterialTheme.typography.labelMedium) }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = onWriteOff,
+                    colors = ButtonDefaults.buttonColors(containerColor = WarningMuted),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                ) { Text("Списать", style = MaterialTheme.typography.labelMedium) }
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, null, tint = Error, modifier = Modifier.size(20.dp))
                 }
             } else {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = onReturn,
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(8.dp)
-                    ) { Text("Вернуть", color = TextSecondary, style = MaterialTheme.typography.labelMedium) }
-                    IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, null, tint = Error, modifier = Modifier.size(20.dp))
-                    }
+                OutlinedButton(
+                    onClick = onReturn,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                ) { Text("Вернуть", color = TextSecondary, style = MaterialTheme.typography.labelMedium) }
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, null, tint = Error, modifier = Modifier.size(20.dp))
                 }
             }
         }
-    }
+    )
 }
 
 private fun fmtCur(value: Double): String {

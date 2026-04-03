@@ -29,3 +29,5 @@ val InfoBg = Color(0x1A06B6D4)
 
 val SelectionOrange = Color(0xFFF97316)
 val SelectionOrangeBg = Color(0x33F97316)
+val SuccessMuted = Color(0xFF1B4332)
+val WarningMuted = Color(0xFF422006)

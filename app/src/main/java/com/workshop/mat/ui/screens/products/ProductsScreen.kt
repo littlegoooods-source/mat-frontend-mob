@@ -135,40 +135,49 @@ private fun ProductItem(
     onArchive: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Surface(shape = RoundedCornerShape(12.dp), color = DarkCard) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(product.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = TextPrimary)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(product.category ?: "-", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-                    if (product.weight > 0) Text("${product.weight} кг", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (product.estimatedCost != null) Text("Себест: ${fmtCur(product.estimatedCost)}", style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                    if (product.recommendedPrice != null) Text("Цена: ${fmtCur(product.recommendedPrice)}", style = MaterialTheme.typography.bodySmall, color = Success)
-                }
-                if (product.inStockCount > 0) {
-                    StatusBadge(text = "${product.inStockCount} шт на складе", color = Success, bgColor = SuccessBg)
-                }
-                if (product.isArchived) {
-                    StatusBadge(text = "Архив", color = TextMuted, bgColor = DarkSurfaceVariant)
-                }
+    val fields = mutableListOf(
+        CardField("НАЗВАНИЕ", product.name),
+        CardField("КАТЕГОРИЯ", product.category ?: "—"),
+    )
+    if (product.weight > 0) {
+        fields.add(CardField("ВЕС", "${product.weight} кг"))
+    }
+    if (product.productionTimeMinutes > 0) {
+        fields.add(CardField("ВРЕМЯ ПРОИЗВ.", "${product.productionTimeMinutes} мин"))
+    }
+    if (product.estimatedCost != null) {
+        fields.add(CardField("СЕБЕСТОИМОСТЬ", fmtCur(product.estimatedCost), valueColor = TextSecondary))
+    }
+    if (product.recommendedPrice != null) {
+        fields.add(CardField("РЕК. ЦЕНА", fmtCur(product.recommendedPrice), valueColor = Success))
+    }
+    if (product.inStockCount > 0) {
+        fields.add(CardField("НА СКЛАДЕ", "${product.inStockCount} шт", valueColor = Success))
+    }
+    if (product.isArchived) {
+        fields.add(CardField("СТАТУС", "Архив", valueColor = TextMuted))
+    }
+
+    WebStyleCard(
+        fields = fields,
+        actions = {
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, null, tint = TextMuted, modifier = Modifier.size(20.dp))
             }
-            Column {
-                IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, null, tint = TextMuted, modifier = Modifier.size(20.dp)) }
-                IconButton(onClick = onCopy) { Icon(Icons.Default.ContentCopy, null, tint = TextMuted, modifier = Modifier.size(20.dp)) }
+            IconButton(onClick = onCopy) {
+                Icon(Icons.Default.ContentCopy, null, tint = TextMuted, modifier = Modifier.size(20.dp))
             }
-            Column {
-                IconButton(onClick = onArchive) {
-                    Icon(if (product.isArchived) Icons.Default.Unarchive else Icons.Default.Archive, null, tint = TextMuted, modifier = Modifier.size(20.dp))
-                }
-                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, null, tint = Error, modifier = Modifier.size(20.dp)) }
+            IconButton(onClick = onArchive) {
+                Icon(
+                    if (product.isArchived) Icons.Default.Unarchive else Icons.Default.Archive,
+                    null, tint = TextMuted, modifier = Modifier.size(20.dp)
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, null, tint = Error, modifier = Modifier.size(20.dp))
             }
         }
-    }
+    )
 }
 
 @Composable
