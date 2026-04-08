@@ -267,32 +267,62 @@ private fun OrganizationsTab(
             shape = RoundedCornerShape(12.dp),
             color = if (isCurrent) SelectionOrangeBg else DarkCard
         ) {
-            Row(
-                modifier = Modifier.padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(shape = RoundedCornerShape(50), color = if (isCurrent) SelectionOrange.copy(alpha = 0.2f) else DarkSurfaceVariant) {
-                    Icon(
-                        if (org.isPersonal) Icons.Default.Person else Icons.Default.Business,
-                        null,
-                        tint = if (isCurrent) SelectionOrange else TextMuted,
-                        modifier = Modifier
-                            .padding(10.dp)
-                            .size(20.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(org.organizationName, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = TextPrimary)
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        StatusBadge(text = org.role, color = if (org.role == "Owner") SelectionOrange else Primary, bgColor = if (org.role == "Owner") SelectionOrangeBg else Primary.copy(alpha = 0.15f))
-                        if (org.isPersonal) {
-                            Text("Личная", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(shape = RoundedCornerShape(50), color = if (isCurrent) SelectionOrange.copy(alpha = 0.2f) else DarkSurfaceVariant) {
+                        Icon(
+                            if (org.isPersonal) Icons.Default.Person else Icons.Default.Business,
+                            null,
+                            tint = if (isCurrent) SelectionOrange else TextMuted,
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(org.organizationName, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = TextPrimary)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            StatusBadge(text = org.role, color = if (org.role == "Owner") SelectionOrange else Primary, bgColor = if (org.role == "Owner") SelectionOrangeBg else Primary.copy(alpha = 0.15f))
+                            if (org.isPersonal) {
+                                Text("Личная", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                            }
                         }
                     }
+                    if (isCurrent) {
+                        Icon(Icons.Default.CheckCircle, null, tint = SelectionOrange, modifier = Modifier.size(22.dp))
+                    }
                 }
-                if (isCurrent) {
-                    Icon(Icons.Default.CheckCircle, null, tint = SelectionOrange, modifier = Modifier.size(22.dp))
+                if (!org.isPersonal && !org.joinCode.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        color = DarkSurfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Код:", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                org.joinCode,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Info,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = {
+                                    clipboardManager.setText(AnnotatedString(org.joinCode))
+                                    viewModel.showSnackbar("Код скопирован")
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.ContentCopy, null, tint = Primary, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
                 }
             }
         }

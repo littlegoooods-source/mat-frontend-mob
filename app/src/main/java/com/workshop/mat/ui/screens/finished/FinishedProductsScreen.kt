@@ -198,20 +198,14 @@ private fun FinishedProductItem(
         fields = fields,
         actions = {
             if (item.status.lowercase() == "instock") {
-                Button(
-                    onClick = onSell,
-                    colors = ButtonDefaults.buttonColors(containerColor = SuccessMuted),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                ) { Text("Продать", style = MaterialTheme.typography.labelMedium) }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = onWriteOff,
-                    colors = ButtonDefaults.buttonColors(containerColor = WarningMuted),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                ) { Text("Списать", style = MaterialTheme.typography.labelMedium) }
-                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = onSell) {
+                    Icon(Icons.Default.AttachMoney, null, tint = Success, modifier = Modifier.size(22.dp))
+                }
+                IconButton(onClick = onWriteOff) {
+                    Icon(Icons.Default.Delete, null, tint = Warning, modifier = Modifier.size(22.dp))
+                }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, null, tint = Error, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Close, null, tint = Error, modifier = Modifier.size(22.dp))
                 }
             } else {
                 OutlinedButton(
@@ -220,7 +214,7 @@ private fun FinishedProductItem(
                 ) { Text("Вернуть", color = TextSecondary, style = MaterialTheme.typography.labelMedium) }
                 Spacer(modifier = Modifier.width(8.dp))
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, null, tint = Error, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Close, null, tint = Error, modifier = Modifier.size(22.dp))
                 }
             }
         }
