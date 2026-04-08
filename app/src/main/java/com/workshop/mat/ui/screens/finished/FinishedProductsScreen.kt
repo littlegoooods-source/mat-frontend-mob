@@ -85,7 +85,7 @@ fun FinishedProductsScreen(viewModel: FinishedProductsViewModel = hiltViewModel(
                 Button(
                     onClick = viewModel::sellProduct,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = SuccessMuted),
+                    colors = ButtonDefaults.buttonColors(containerColor = Success),
                     enabled = !uiState.isSaving
                 ) { Text("Продать") }
                 OutlinedButton(onClick = viewModel::closeSellDialog, modifier = Modifier.weight(1f)) {
@@ -114,7 +114,7 @@ fun FinishedProductsScreen(viewModel: FinishedProductsViewModel = hiltViewModel(
                 Button(
                     onClick = viewModel::writeOffProduct,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = WarningMuted),
+                    colors = ButtonDefaults.buttonColors(containerColor = Warning),
                     enabled = !uiState.isSaving
                 ) { Text("Списать") }
                 OutlinedButton(onClick = viewModel::closeWriteOffDialog, modifier = Modifier.weight(1f)) {

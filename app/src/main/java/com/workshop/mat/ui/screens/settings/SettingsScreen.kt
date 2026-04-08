@@ -293,7 +293,7 @@ private fun OrganizationsTab(
                         Icon(Icons.Default.CheckCircle, null, tint = SelectionOrange, modifier = Modifier.size(22.dp))
                     }
                 }
-                if (!org.isPersonal && !org.joinCode.isNullOrBlank()) {
+                if (!org.joinCode.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
@@ -391,15 +391,6 @@ private fun OrganizationsTab(
                             modifier = Modifier.padding(10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Surface(shape = RoundedCornerShape(50), color = Primary.copy(alpha = 0.15f)) {
-                                Text(
-                                    member.userName.take(1).uppercase(),
-                                    modifier = Modifier.padding(10.dp),
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = Primary
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(member.userName, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
                                 Text(member.userEmail, style = MaterialTheme.typography.bodySmall, color = TextMuted)
@@ -597,28 +588,6 @@ private fun ProfileTab(
     viewModel: SettingsViewModel,
     onLogout: () -> Unit
 ) {
-    AppCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = RoundedCornerShape(50), color = Primary.copy(alpha = 0.15f)) {
-                Text(
-                    (uiState.user?.name?.take(1) ?: "?").uppercase(),
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    color = Primary
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    uiState.user?.name ?: "",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = TextPrimary
-                )
-                Text(uiState.user?.email ?: "", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-            }
-        }
-    }
-
     AppCard {
         Text("Данные профиля", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold), color = TextPrimary)
         Spacer(modifier = Modifier.height(8.dp))
