@@ -52,8 +52,6 @@ class DashboardViewModel @Inject constructor(
 
     init {
         _uiState.value = _uiState.value.copy(userName = tokenManager.user?.name ?: "")
-        loadDashboard()
-        loadSalesData()
     }
 
     fun loadDashboard() {

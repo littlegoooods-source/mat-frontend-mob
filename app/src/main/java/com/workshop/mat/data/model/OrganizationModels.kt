@@ -25,11 +25,15 @@ data class OrganizationDetailDto(
 data class OrganizationMemberDto(
     val id: Int = 0,
     val userId: Int = 0,
-    val userName: String = "",
-    val userEmail: String = "",
+    val email: String = "",
+    val username: String = "",
+    val fullName: String = "",
     val role: String = "",
     val joinedAt: String = ""
-)
+) {
+    val userName: String get() = fullName.takeIf { it.isNotBlank() } ?: username.takeIf { it.isNotBlank() } ?: email
+    val userEmail: String get() = email
+}
 
 data class CreateOrganizationRequest(
     val name: String,
@@ -59,7 +63,7 @@ data class InvitationDto(
     val organizationId: Int = 0,
     val organizationName: String = "",
     val invitedByName: String? = null,
-    val invitedEmail: String = "",
+    val email: String = "",
     val status: String = "",
     val createdAt: String = "",
     val expiresAt: String? = null

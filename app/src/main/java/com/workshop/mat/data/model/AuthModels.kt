@@ -31,17 +31,22 @@ data class AuthResponse(
 
 data class UserDto(
     val id: Int = 0,
-    val name: String = "",
+    val username: String = "",
     val email: String = "",
+    val fullName: String? = null,
+    val firstName: String? = null,
+    val lastName: String? = null,
     val currentOrganizationId: Int? = null,
     val currentOrganizationName: String? = null,
-    val role: String? = null
-)
+    val currentOrganizationRole: String? = null
+) {
+    val name: String get() = fullName?.takeIf { it.isNotBlank() } ?: username
+    val role: String? get() = currentOrganizationRole
+}
 
 data class OrganizationMembershipDto(
     val organizationId: Int = 0,
     val organizationName: String = "",
     val role: String = "",
-    val isPersonal: Boolean = false,
-    val joinCode: String? = null
+    val isPersonal: Boolean = false
 )

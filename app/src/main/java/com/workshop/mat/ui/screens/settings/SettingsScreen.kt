@@ -293,78 +293,47 @@ private fun OrganizationsTab(
                         Icon(Icons.Default.CheckCircle, null, tint = SelectionOrange, modifier = Modifier.size(22.dp))
                     }
                 }
-                if (!org.joinCode.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        color = DarkSurfaceVariant.copy(alpha = 0.5f)
+            }
+        }
+    }
+
+    uiState.currentOrgDetail?.let { org ->
+        if (org.joinCode != null) {
+            AppCard {
+                Text("Код организации", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold), color = TextPrimary)
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    color = DarkSurfaceVariant.copy(alpha = 0.5f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("Код:", style = MaterialTheme.typography.labelSmall, color = TextMuted)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                org.joinCode,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = Info,
-                                modifier = Modifier.weight(1f)
-                            )
-                            IconButton(
-                                onClick = {
-                                    clipboardManager.setText(AnnotatedString(org.joinCode))
-                                    viewModel.showSnackbar("Код скопирован")
-                                },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(Icons.Default.ContentCopy, null, tint = Primary, modifier = Modifier.size(18.dp))
+                        Text(
+                            org.joinCode,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            color = Info,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = {
+                            clipboardManager.setText(AnnotatedString(org.joinCode))
+                            viewModel.showSnackbar("Код скопирован")
+                        }) {
+                            Icon(Icons.Default.ContentCopy, null, tint = Primary, modifier = Modifier.size(20.dp))
+                        }
+                        if (uiState.user?.role == "Owner") {
+                            IconButton(onClick = viewModel::regenerateCode) {
+                                Icon(Icons.Default.Refresh, null, tint = Warning, modifier = Modifier.size(20.dp))
                             }
                         }
                     }
                 }
             }
         }
-    }
 
-    uiState.currentOrgDetail?.let { org ->
         if (!org.isPersonal) {
-            if (org.joinCode != null) {
-                AppCard {
-                    Text("Код для приглашения", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold), color = TextPrimary)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        color = DarkSurfaceVariant.copy(alpha = 0.5f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                org.joinCode,
-                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                                color = Info,
-                                modifier = Modifier.weight(1f)
-                            )
-                            IconButton(onClick = {
-                                clipboardManager.setText(AnnotatedString(org.joinCode))
-                                viewModel.showSnackbar("Код скопирован")
-                            }) {
-                                Icon(Icons.Default.ContentCopy, null, tint = Primary, modifier = Modifier.size(20.dp))
-                            }
-                            if (uiState.user?.role == "Owner") {
-                                IconButton(onClick = viewModel::regenerateCode) {
-                                    Icon(Icons.Default.Refresh, null, tint = Warning, modifier = Modifier.size(20.dp))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
             AppCard {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -393,7 +362,9 @@ private fun OrganizationsTab(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(member.userName, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
-                                Text(member.userEmail, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                if (member.userEmail.isNotBlank() && member.userEmail != member.userName) {
+                                    Text(member.userEmail, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                }
                             }
                             StatusBadge(
                                 text = member.role,
@@ -563,7 +534,7 @@ private fun InvitationsTab(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(inv.invitedEmail, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+                        Text(inv.email, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             StatusBadge(text = statusText, color = statusColor, bgColor = statusColor.copy(alpha = 0.15f))
                             Text(inv.createdAt.take(10), style = MaterialTheme.typography.bodySmall, color = TextMuted)
